@@ -173,6 +173,7 @@ function goalPanel(){var O=D.owner,M=D.meta,ts=M.typ_share,near=M.cfg.PACE_NEAR,
 function team(){var O=D.owner,T=D.team,M=D.meta,t=O.tot,h='';
   h+='<div class="card hero"><div class="m">'+esc(M.month)+' · day '+M.day+' of '+M.dim+' · owner view (all designers)</div><h2>Team coaching roll-up</h2><div class="m">Positive first, then where help pays off most. Drafts only: nothing is sent.</div></div>';
   h+='<div id="gp">'+goalPanel()+'</div>';
+  h+=actOwnerCard();
   h+='<div class="card" style="border-left:5px solid #2f6fdd"><b>📋 New: activity tracker on every designer page</b><p class="small" style="margin:6px 0 0">Each designer can log calls, texts/emails, follow-ups, appointments, quotes, showroom visits, referral asks and closes by voice (mic button) or by typing, check the counts, and see today / this week / this month against a suggested weekly target (2 touches per open quote from the playbook rhythm, their own appointment pace, one referral ask per sale). <b>Every saved entry is also sent to you automatically</b> (Google Form → '+(D.meta.activity_sheet?'<a href="'+esc(D.meta.activity_sheet)+'" target="_blank" rel="noopener noreferrer">Activity log (Google Sheet)</a>':'Activity log (Google Sheet)')+'). Entries made with no signal wait on the phone and send when it is back online. Deleting an entry on a phone does not remove it from the Sheet.</p></div>';
   h+='<div class="grid">'+tile('Sold this month',m0(T.mtd.usd),T.mtd.sales+' sales · ties to Sales Board ('+m0(M.board_mtd_usd)+' / '+M.board_mtd_sales+') · '+pc(t.usd/t.exp_td)+' of team-typical',cls(t.usd,t.exp_td,t.exp_td*.05))+
     tile('Team-typical by today',m0(t.exp_td),'sum of roster designers\' lead-adjusted expectations','neu')+
@@ -223,8 +224,30 @@ function actBar(lbl,v,t,cap){var pct=t?Math.min(100,v/t*100):0;return '<div clas
 function actCap(v,t,left,unit){if(!t)return'Logged this week. No target set for this one.';if(v>=t)return'Target reached this week. Nice work!';var need=t-v,per=Math.ceil(need/left);
   if(need<=left)return v===0?'Nothing logged yet this week. The target is '+t+' this week.':need+' more to reach this week\'s target.';
   return v===0?'Nothing logged yet this week. About '+per+' '+unit+' a day gets you there.':need+' more to reach the target: about '+per+' a day for the '+(left===1?'rest of today':'next '+left+' days')+'.'}
-function actRender(x){ACT_CUR=x;var F=D.meta.activity_form,es=ACT.load(x.slug),np=ACT.pending(es),pe=$('#actPend');if(pe)pe.textContent=np?' '+np+' entr'+(np===1?'y is':'ies are')+' waiting to send; they go automatically when you are online.':'';var s=ACT.stats(es),tg=x.activity_target||{},w=s.week,C=ACT.CATS,left=s.workLeft;
-  var tw=ACT.touches(w),h='<div class="card"><b>This week</b> <span class="small">(since Monday '+esc(s.weekStart.slice(5).replace('-','/'))+')</span>'+
+/* ── Sheet history (Andrew, Oct 21, 2026): the Activity Sheet is the source of truth. Each bundle carries the designer's own Sheet rows
+   (x.activity.rows: k = dedupe key, d, c, n, t). Shown = Sheet rows + local entries not yet in the Sheet. Key = SHA-256 of
+   who|date|counts|note (who = Designer field, lowercase; counts = the form's 8-key string; note NFC + whitespace collapsed), first 16 hex,
+   the same as coach activity_rows.key(); the Sheet timestamp is not part of it. A local entry found in the bundle is moved out of the
+   counted log into an archive key (used only if a bundle ever arrives without Sheet history), so nothing double counts or resets. */
+var ACT_ARCH='cfnj_activity_arch_v1_';
+function actNote(n){var s=String(n||'');try{s=s.normalize('NFC')}catch(e){}return s.replace(/\s+/g,' ').trim()}
+async function actKey(who,e){var s=String(who||'').toLowerCase().replace(/\s+/g,' ').trim()+'|'+e.d+'|'+ACT.countsStr(e.c)+'|'+actNote(e.note);
+  return hex(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))).slice(0,16)}
+function actArch(slug){try{var a=JSON.parse(localStorage.getItem(ACT_ARCH+slug)||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}}
+function actBag(x){var b={};((x.activity&&x.activity.rows)||[]).forEach(function(r){b[r.k]=(b[r.k]||0)+1});return b}
+/* Give every local entry its key, then retire the ones already in this bundle's Sheet rows (sent entries only; pending ones are not in the Sheet yet). */
+async function actReconcile(x){var es=ACT.load(x.slug),ch=false;
+  for(var i=0;i<es.length;i++){if(!es[i].k){try{es[i].k=await actKey(es[i].w||actWho(x),es[i]);ch=true}catch(e){}}}
+  if(x.activity){var bag=actBag(x),keep=[],gone=[];es.forEach(function(e){if(e.k&&e.s!=='pending'&&bag[e.k]>0){bag[e.k]--;gone.push(e)}else keep.push(e)});
+    if(gone.length){var ar=actArch(x.slug).concat(gone).slice(-500);try{localStorage.setItem(ACT_ARCH+x.slug,JSON.stringify(ar))}catch(e){}es=keep;ch=true}}
+  if(ch)ACT.save(x.slug,es);return ch}
+/* Everything to count and list: Sheet rows + local entries not matched to a Sheet row (no Sheet history in the bundle: local + archive). */
+function actAll(x){var es=ACT.load(x.slug);if(!x.activity)return es.concat(actArch(x.slug).map(function(e){return Object.assign({},e,{s:'sent',arch:1})}));
+  var bag=actBag(x),loc=es.filter(function(e){if(e.k&&e.s!=='pending'&&bag[e.k]>0){bag[e.k]--;return false}return true});
+  return x.activity.rows.map(function(r,i){return{id:'sheet-'+r.k+'-'+i,d:r.d,t:r.t||0,c:r.c||{},note:r.n||'',s:'sheet',p:r.p}}).concat(loc)}
+function actRender(x){ACT_CUR=x;var F=D.meta.activity_form,es=actAll(x),np=ACT.pending(es),pe=$('#actPend');if(pe)pe.textContent=np?' '+np+' entr'+(np===1?'y is':'ies are')+' waiting to send; they go automatically when you are online.':'';var s=ACT.stats(es),tg=x.activity_target||{},w=s.week,C=ACT.CATS,left=s.workLeft;
+  var nl=es.filter(function(e){return e.s!=='sheet'&&!e.arch}).length;
+  var tw=ACT.touches(w),h=(x.activity?'<p class="fine actsynced" style="margin:0 0 8px">Synced from all your devices · updated '+esc(x.activity.asof)+(nl?' · '+nl+' newer entr'+(nl===1?'y':'ies')+' from this device included':'')+'</p>':'')+'<div class="card"><b>This week</b> <span class="small">(since Monday '+esc(s.weekStart.slice(5).replace('-','/'))+')</span>'+
    actBar('📞💬🔁 Touches',tw,tg.touches,actCap(tw,tg.touches,left,'touches'))+actBar('🏠 Appointments held',w.appts,tg.appts||0,actCap(w.appts,tg.appts||0,left,'appointments'))+
    actBar('🌱 Referral asks / own leads',w.leads,tg.asks||0,actCap(w.leads,tg.asks||0,left,'asks'))+
    '<div class="achips"><span class="chip">'+s.daysWeek+' of 6 days logged this week</span><span class="chip">'+s.daysMonth+' days logged this month</span><span class="chip '+(s.streak>=3?'g':'')+'">🔥 '+s.streak+'-day streak</span></div></div>';
@@ -234,14 +257,20 @@ function actRender(x){ACT_CUR=x;var F=D.meta.activity_form,es=ACT.load(x.slug),n
    '<p class="small" style="margin:8px 0 0">'+(tot(s.month)?'This is your own count of the work behind your sales. Busy weeks and quiet weeks both show up here, so you can see the pattern for yourself.':'Nothing logged this month yet. Log today and watch your week build up.')+'</p>'+
    '<div class="actrow"><button type="button" class="btn" id="actShare">Export / share my week</button>'+'</div></div>';
   var rec=es.slice().sort(function(a,b){return b.t-a.t}).slice(0,10);
-  h+='<details><summary>Recent entries ('+es.length+')</summary>'+(rec.length?rec.map(function(e){return '<div class="aent"><div><b>'+esc(e.d.slice(5).replace('-','/'))+'</b> · '+C.filter(function(c){return e.c[c.k]}).map(function(c){return c.i+' '+e.c[c.k]}).join(' ')+(e.s==='sent'?' <span class="chip g" title="Sent to Andrew">✓ sent</span>':e.s==='pending'?' <span class="chip" title="Will send when online">⏳ pending</span>':'')+(e.note?'<div class="small">'+esc(e.note)+'</div>':'')+'</div><button type="button" class="adel" data-id="'+esc(e.id)+'" aria-label="Delete entry">✕</button></div>'}).join(''):'<p class="small">No entries yet.</p>')+'</details>';
+  h+='<details><summary>Recent entries ('+es.length+')</summary>'+(rec.length?rec.map(function(e){return '<div class="aent"><div><b>'+esc(e.d.slice(5).replace('-','/'))+'</b> · '+C.filter(function(c){return e.c[c.k]}).map(function(c){return c.i+' '+e.c[c.k]}).join(' ')+(e.s==='sheet'?' <span class="chip g" title="In Andrew\'s activity log; shows on all your devices">✓ synced</span>'+(e.p?' <span class="chip">owner preview</span>':''):e.s==='sent'?' <span class="chip g" title="Sent to Andrew">✓ sent</span>':e.s==='pending'?' <span class="chip" title="Will send when online">⏳ pending</span>':'')+(e.note?'<div class="small">'+esc(e.note)+'</div>':'')+'</div>'+(e.s==='sheet'||e.arch?'':'<button type="button" class="adel" data-id="'+esc(e.id)+'" aria-label="Delete entry">✕</button>')+'</div>'}).join(''):'<p class="small">No entries yet.</p>')+'</details>';
   h+='<div class="card"><b class="small">Suggested weekly targets (from the CFNJ playbook and your own numbers)</b><ul class="tight small">'+actTargetText(tg).map(function(t){return '<li>'+t+'</li>'}).join('')+'</ul>'+
-   '<p class="fine" style="margin:6px 0 0"><b>Where this is saved:</b> in this browser on this device'+(F?', and each entry is also sent to Andrew':'')+'. Clearing browser data, private browsing, or switching phones starts a fresh log here.</p></div>';
+   '<p class="fine" style="margin:6px 0 0"><b>Where this is saved:</b> '+(x.activity?'each entry is saved on this device right away and sent to Andrew\'s activity log. That log is your running total: it shows on every device you use, refreshed through the day, so switching phones or computers keeps your history.':'in this browser on this device'+(F?', and each entry is also sent to Andrew':'')+'. Clearing browser data, private browsing, or switching phones starts a fresh log here.')+'</p></div>';
   $('#actTotals').innerHTML=h;
   document.querySelectorAll('.adel').forEach(function(b){b.onclick=function(){if(!confirm(D.meta.activity_form?'Delete this entry from this device? Andrew\'s copy is not changed.':'Delete this entry?'))return;ACT.save(x.slug,ACT.load(x.slug).filter(function(e){return String(e.id)!==b.dataset.id}));actRender(x);toast('Deleted')}});
-  $('#actShare').onclick=function(){var t=ACT.summary(x.name,ACT.load(x.slug),tg);
+  $('#actShare').onclick=function(){var t=ACT.summary(x.name,actAll(x),tg);
     if(navigator.share){navigator.share({title:'My week (CFNJ)',text:t}).catch(function(){})}else if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){toast('Copied: paste it into a text or email')},function(){actShow(t)})}else actShow(t)};
 }
+function actOwnerCard(){var A=D.activity_all;if(!A)return'';var mo=ACT.ymd(new Date()).slice(0,8),g={};
+  A.rows.forEach(function(r){var w=r.who||'(blank)';var o=g[w]||(g[w]={n:0,last:'',mo:0});o.n++;if(r.d>o.last)o.last=r.d;if(r.d.slice(0,8)===mo)o.mo+=Object.keys(r.c||{}).reduce(function(a,k){return a+(+r.c[k]||0)},0)});
+  var ks=Object.keys(g).sort(function(a,b){return g[b].n-g[a].n||a.localeCompare(b)});
+  return '<div class="card"><b>📋 Activity log (all devices)</b> <span class="small">· updated '+esc(A.asof)+' · '+A.rows.length+' entries</span>'+(ks.length?'<div class="tw"><table class="atab"><thead><tr><th>Designer field</th><th>Entries</th><th>Last date</th><th>This month (all counts)</th></tr></thead><tbody>'+
+    ks.map(function(k){return '<tr><td>'+esc(k)+'</td><td>'+g[k].n+'</td><td>'+esc(g[k].last)+'</td><td>'+g[k].mo+'</td></tr>'}).join('')+'</tbody></table></div>':'<p class="small">No entries yet.</p>')+
+    '<p class="fine" style="margin:6px 0 0">Each designer page shows only that designer\'s own rows. "(owner preview)" and test rows never count toward a real designer.</p></div>'}
 function actShow(t){var c=$('#actConfirm');c.classList.remove('hidden');c.innerHTML='<p class="small">Select and copy this, then paste it into a text or email:</p><textarea rows="8" readonly>'+esc(t)+'</textarea>'}
 function actConfirm(x,res,note){var C=ACT.CATS,c=$('#actConfirm');ACT_DRAFT={c:res.counts,note:note};c.classList.remove('hidden');
   var found=res.hits.length?'We read: '+res.hits.map(function(h){var cc=C.filter(function(k){return k.k===h.cat})[0];return cc.l+' '+h.n}).join(' · ')+'.':'We couldn\'t find any numbers in that note. Enter the counts below.';
@@ -254,10 +283,11 @@ function actConfirm(x,res,note){var C=ACT.CATS,c=$('#actConfirm');ACT_DRAFT={c:r
 /* One-tap save (Andrew Oct 21): used by the Save my note button and the manual Save above. */
 function actCommit(x,cnt,note,msg){var c=$('#actConfirm');var d=new Date();d.setDate(d.getDate()-(+$('#actDay').value||0));
     var F=D.meta.activity_form,es=ACT.load(x.slug),ne={id:Date.now()+'-'+Math.random().toString(36).slice(2,7),d:ACT.ymd(d),t:Date.now(),c:cnt,note:(note||'').slice(0,500)};if(F){ne.s='pending';ne.w=actWho(x)}es.push(ne);
+    actKey(ne.w||actWho(x),ne).then(function(k){var a=ACT.load(x.slug);a.forEach(function(z){if(z.id===ne.id)z.k=k});ACT.save(x.slug,a)},function(){});
     if(!ACT.save(x.slug,es)){toast('Could not save on this device (storage is off or full)');return}
     c.classList.add('hidden');c.innerHTML='';$('#actTxt').value='';actRender(x);toast(msg||'Saved');
     if(F)ACT.sync(x.slug,F,function(ch){if(ch){toast((msg||'Saved')+' and sent to Andrew');window.ACT_ONSYNC(x.slug)}else if(ACT.pending(ACT.load(x.slug)))toast((msg||'Saved')+'. It will send when you are online')})}
-function actWire(x){if(!$('#actTotals'))return;actRender(x);var txt=$('#actTxt'),mic=$('#actMic'),L=$('#actMicL'),S=$('#actMicS');
+function actWire(x){if(!$('#actTotals'))return;actRender(x);actReconcile(x).then(function(ch){if(ch&&ACT_CUR===x)actRender(x)},function(){});var txt=$('#actTxt'),mic=$('#actMic'),L=$('#actMicL'),S=$('#actMicS');
   $('#actRead').onclick=function(){var t=txt.value.trim();if(rec){try{rec.onresult=null;rec.stop()}catch(e){}}if(!t){toast('Say or type what you did first');return}var r=ACT.parse(t),C=ACT.CATS,cnt={},any=0;C.forEach(function(k){var v=Math.min(999,+r.counts[k.k]||0);if(v>0){cnt[k.k]=v;any+=v}});if(!any){actConfirm(x,r,t);txt.value='';txt.blur();return}var lbl=C.filter(function(k){return cnt[k.k]}).map(function(k){return k.l+' '+cnt[k.k]}).join(', ');txt.blur();actCommit(x,cnt,t,'Logged: '+lbl)};  /* Andrew Oct 21: clear the box once read; Cancel puts the note back */
   if(!ACT.speechOK()){mic.classList.add('hidden');L.textContent='Voice button not available in this browser';S.innerHTML='No problem: tap the box below and use the 🎤 on your phone\'s keyboard to dictate, or just type.';return}
   var R=window.SpeechRecognition||window.webkitSpeechRecognition,rec=null,base='';
