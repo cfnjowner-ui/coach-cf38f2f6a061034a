@@ -45,7 +45,7 @@ function nav(on){var t=[['team','Team'],['people','Designers'],['topics','Traini
   $('#nav').innerHTML=t.map(function(x){return '<a href="#'+x[0]+'" class="'+(on===x[0]?'on':'')+'">'+x[1]+'</a>'}).join('')}
 function route(h){window.scrollTo(0,0);var M=$('#main');
   if(h.indexOf('d/')===0){var x=D.designers.find(function(z){return z.slug===h.slice(2)})||D.designers[0];if(D.kind==='owner')nav('people');M.innerHTML=designer(x);wire(x);return}
-  nav(h);M.innerHTML=h==='people'?people():h==='topics'?topics():h==='queue'?queue():h==='lib'?library():h==='how'?how():team();wireOwner()}
+  nav(h);M.innerHTML=h==='people'?people():h==='topics'?topics():h==='queue'?queue():h==='lib'?library():h==='how'?how():team();wireOwner();if(h!=='people'&&h!=='topics'&&h!=='queue'&&h!=='lib'&&h!=='how')adWire()}
 /* personal goal helpers */
 function gtxt(h){if(h.basis==='none')return'No goal shown (on leave, no leads).';var d=h.diff==null?null:Math.round(Math.abs(h.diff)*100);
   if(h.basis==='lead')return'Under '+D.meta.cfg.HIST_MIN_MONTHS+' months of history ('+h.months+'), so the lead-based goal share is used for now.';
@@ -173,6 +173,7 @@ function goalPanel(){var O=D.owner,M=D.meta,ts=M.typ_share,near=M.cfg.PACE_NEAR,
 function team(){var O=D.owner,T=D.team,M=D.meta,t=O.tot,h='';
   h+='<div class="card hero"><div class="m">'+esc(M.month)+' · day '+M.day+' of '+M.dim+' · owner view (all designers)</div><h2>Team coaching roll-up</h2><div class="m">Positive first, then where help pays off most. Drafts only: nothing is sent.</div></div>';
   h+='<div id="gp">'+goalPanel()+'</div>';
+  h+=actDash();
   h+=actOwnerCard();
   h+='<div class="card" style="border-left:5px solid #2f6fdd"><b>📋 New: activity tracker on every designer page</b><p class="small" style="margin:6px 0 0">Each designer can log calls, texts/emails, follow-ups, appointments, quotes, showroom visits, referral asks and closes by voice (mic button) or by typing, check the counts, and see today / this week / this month against a suggested weekly target (2 touches per open quote from the playbook rhythm, their own appointment pace, one referral ask per sale). <b>Every saved entry is also sent to you automatically</b> (Google Form → '+(D.meta.activity_sheet?'<a href="'+esc(D.meta.activity_sheet)+'" target="_blank" rel="noopener noreferrer">Activity log (Google Sheet)</a>':'Activity log (Google Sheet)')+'). Entries made with no signal wait on the phone and send when it is back online. Deleting an entry on a phone does not remove it from the Sheet.</p></div>';
   h+='<div class="grid">'+tile('Sold this month',m0(T.mtd.usd),T.mtd.sales+' sales · ties to Sales Board ('+m0(M.board_mtd_usd)+' / '+M.board_mtd_sales+') · '+pc(t.usd/t.exp_td)+' of team-typical',cls(t.usd,t.exp_td,t.exp_td*.05))+
@@ -299,3 +300,66 @@ function actWire(x){if(!$('#actTotals'))return;actRender(x);actReconcile(x).then
     rec.onerror=function(ev){var m={'not-allowed':'Microphone access is off for this site. You can type, or use your keyboard\'s 🎤.','service-not-allowed':'Voice is blocked here. You can type, or use your keyboard\'s 🎤.','no-speech':'Didn\'t catch that. Tap the mic and try again.','network':'Voice needs an internet connection. You can type instead.','audio-capture':'No microphone found. You can type instead.'}[ev.error];S.textContent=m||'Voice stopped. You can type instead.'};
     rec.onend=function(){mic.classList.remove('on');rec=null;L.textContent='Tap the mic and say what you did';var t=txt.value.trim();if(t&&t!==base)S.textContent='Got it. Tap Save my note to log it.'};
     try{rec.start()}catch(e){rec=null;S.textContent='Voice could not start. You can type instead.'}}}
+/* ── OWNER-ONLY activity dashboard (Andrew, Oct 21, 2026). Data: D.act_dash (owner bundle only; built in coach.py from the Activity Sheet
+   cache: approved live designers, counts + dates, NO note text; test / owner-preview rows excluded). Called only from team(), so designer
+   pages never render it. Inline SVG, no chart library. Colors: one per activity type (no red, no amber); amber = missing; neutral = facts. ── */
+var AD={p:'month',who:-1};
+var AD_COL={calls:'#2f6fdd',texts:'#12a4a4',followups:'#7b5cd6',appts:'#12263f',quotes:'#8d6e63',showroom:'#b05fb5',leads:'#8a94a6',closes:'#0d7a45'};
+var AD_P=[['week','This week'],['l7','Last 7 days'],['month','This month'],['all','All time']];
+function adYmd(d){return ACT.ymd(d)}
+function adShift(s,n){var p=s.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);d.setDate(d.getDate()+n);return adYmd(d)}
+function adFmt(s){if(!s)return'–';var p=s.split('-');return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+p[1]-1]+' '+(+p[2])}
+function adRange(){var A=D.act_dash,t=adYmd(new Date()),n=new Date(),a;
+  if(AD.p==='month')a=t.slice(0,8)+'01';
+  else if(AD.p==='week'){var wd=(n.getDay()+6)%7;a=adShift(t,-wd)}
+  else if(AD.p==='l7')a=adShift(t,-6);
+  else{a=A.rows.length?A.rows[0].d:t;var mx=A.rows.length?A.rows[A.rows.length-1].d:t;if(mx>t)t=mx;if(a>t)a=t}
+  return [a,t]}
+function adZero(){var z={};ACT.CATS.forEach(function(c){z[c.k]=0});return z}
+function adSum(c){return ACT.CATS.reduce(function(a,k){return a+(+c[k.k]||0)},0)}
+function adStack(c,tot,max){if(!tot)return '<div class="adbar"></div>';
+  return '<div class="adbar" title="'+tot+' actions"><div class="adfill" style="width:'+Math.max(2,100*tot/max).toFixed(1)+'%">'+ACT.CATS.filter(function(k){return c[k.k]}).map(function(k){return '<i style="width:'+(100*c[k.k]/tot).toFixed(2)+'%;background:'+AD_COL[k.k]+'" title="'+esc(k.l)+': '+c[k.k]+'"></i>'}).join('')+'</div></div>'}
+function adLegend(){return '<div class="legend adleg">'+ACT.CATS.map(function(k){return '<span><i style="background:'+AD_COL[k.k]+'"></i>'+esc(k.l)+'</span>'}).join('')+'</div>'}
+function actDash(){var A=D.act_dash;if(!A)return '';return '<section class="sec" id="actdash"><h2>Activity dashboard</h2><div id="adBody">'+adBody()+'</div></section>'}
+function adBody(){var A=D.act_dash,C=ACT.CATS,r=adRange(),a=r[0],b=r[1],rows=A.rows.filter(function(x){return x.d>=a&&x.d<=b});
+  var team=adZero(),per=A.designers.map(function(d){return {d:d,c:adZero(),days:{},last:''}});
+  A.rows.forEach(function(x){if(x.d>per[x.i].last)per[x.i].last=x.d});
+  rows.forEach(function(x){var p=per[x.i];C.forEach(function(k){var v=+(x.c[k.k]||0);p.c[k.k]+=v;team[k.k]+=v});p.days[x.d]=1});
+  per.forEach(function(p){p.tot=adSum(p.c);p.nd=Object.keys(p.days).length});
+  var tt=adSum(team),active=per.filter(function(p){return p.tot>0}).length,nd=A.designers.length,max=Math.max.apply(null,per.map(function(p){return p.tot}).concat([1]));
+  per.sort(function(x,y){return (y.tot-x.tot)||(y.nd-x.nd)||x.d.name.localeCompare(y.d.name)});
+  var plab=AD_P.filter(function(p){return p[0]===AD.p})[0][1],h='';
+  h+='<div class="card"><div class="gph"><div><b>📊 Team activity · '+esc(plab)+'</b><div class="small">'+adFmt(a)+(a!==b?' – '+adFmt(b):'')+' · from the Activity Sheet, updated '+esc(A.asof)+'</div></div>'+
+    '<div class="seg" role="group" aria-label="Period">'+AD_P.map(function(p){return '<button type="button" data-adp="'+p[0]+'" class="'+(p[0]===AD.p?'on':'')+'">'+esc(p[1])+'</button>'}).join('')+'</div></div>';
+  h+='<div class="adtiles">'+'<div class="adt adtot"><div class="k">All actions</div><div class="v">'+n0(tt)+'</div><div class="s">'+active+' of '+nd+' designers logged</div></div>'+
+    C.map(function(k){return '<div class="adt" style="border-top-color:'+AD_COL[k.k]+'"><div class="k"><i style="background:'+AD_COL[k.k]+'"></i>'+k.i+' '+esc(k.l)+'</div><div class="v">'+n0(team[k.k])+'</div></div>'}).join('')+'</div>';
+  h+=(tt?'<div class="admix">'+adStack(team,tt,tt)+'</div>':'')+adLegend();
+  if(nd-active)h+='<p class="adnote">'+(nd-active)+' of '+nd+' designers have no activity logged for '+esc(plab.toLowerCase())+'.</p>';
+  h+='</div>';
+  h+='<div class="card"><b>👥 By designer</b> <span class="small">· '+esc(plab)+' · sorted by total actions · all '+nd+' approved designers</span><div class="adlist">'+
+    '<div class="adr adhd"><span>Designer</span><span>Mix</span><span>Actions</span><span>Days</span><span>Last logged</span></div>'+
+    per.map(function(p){var z=!p.tot;return '<div class="adr'+(z?' adz':'')+'"><span class="adn">'+esc(p.d.name)+'</span>'+
+      '<span class="adm">'+(z?'<span class="chip">No activity logged</span>':adStack(p.c,p.tot,max)+'<span class="adcnt">'+C.filter(function(k){return p.c[k.k]}).map(function(k){return '<em style="color:'+AD_COL[k.k]+'">'+k.i+'</em>'+p.c[k.k]}).join(' ')+'</span>')+'</span>'+
+      '<span class="adv"><b>'+(z?'0':n0(p.tot))+'</b><small> actions</small></span><span class="adv">'+p.nd+'<small> '+(p.nd===1?'day':'days')+'</small></span><span class="adv adl">'+(p.last?'<small>last </small>'+adFmt(p.last):'<small>never logged</small>')+'</span></div>'}).join('')+'</div>'+adLegend()+'</div>';
+  h+='<div class="card"><div class="gph"><div><b>📈 Actions per day</b> <span class="small">· '+esc(plab)+'</span></div><select id="adWho" aria-label="Designer"><option value="-1">Whole team</option>'+
+    A.designers.map(function(d,i){return '<option value="'+i+'"'+(AD.who===i?' selected':'')+'>'+esc(d.name)+'</option>'}).join('')+'</select></div><div id="adTrend"></div>'+adLegend()+'</div>';
+  h+='<p class="fine">Counts and dates only; notes are never shown here (they can mention clients). Not counted: '+A.excluded.test+' test / owner-preview entries'+(A.excluded.other?' and '+A.excluded.other+' entries whose Designer name matches no approved designer':'')+'. They still appear in the Activity log card. Updates with every activity sync.</p>';
+  return h}
+function adTrend(){var el=$('#adTrend');if(!el)return;var A=D.act_dash,C=ACT.CATS,r=adRange(),a=r[0],b=r[1],days=[],by={};
+  for(var d=a,g=0;d<=b&&g<400;d=adShift(d,1),g++){days.push(d);by[d]=adZero()}
+  A.rows.forEach(function(x){if(by[x.d]&&(AD.who<0||x.i===AD.who))C.forEach(function(k){by[x.d][k.k]+=+(x.c[k.k]||0)})});
+  var W=Math.max(300,Math.round(el.clientWidth||600)),H=190,L=30,R=8,T=16,B=26,n=days.length,cw=(W-L-R)/n,bw=Math.max(2,Math.min(38,cw*.72));
+  var mx=Math.max.apply(null,days.map(function(d){return adSum(by[d])}).concat([1])),step=mx<=5?1:mx<=10?2:mx<=25?5:Math.ceil(mx/5/5)*5;mx=Math.ceil(mx/step)*step;
+  var y=function(v){return T+(H-T-B)*(1-v/mx)},s='<svg class="adsvg" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img" aria-label="Actions per day">';
+  for(var v=0;v<=mx;v+=step)s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="#e4dfd3"/><text x="'+(L-5)+'" y="'+(y(v)+4)+'" text-anchor="end" font-size="11" fill="#667085">'+v+'</text>';
+  var every=Math.max(1,Math.ceil(n/(W/48))),tot=0;
+  days.forEach(function(d,i){var x=L+cw*i+(cw-bw)/2,base=0,t=adSum(by[d]);tot+=t;
+    C.forEach(function(k){var v=by[d][k.k];if(!v)return;s+='<rect x="'+x.toFixed(1)+'" y="'+y(base+v).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+(y(base)-y(base+v)).toFixed(1)+'" fill="'+AD_COL[k.k]+'"><title>'+adFmt(d)+' · '+esc(k.l)+': '+v+'</title></rect>';base+=v});
+    if(t&&bw>=12)s+='<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y(t)-3).toFixed(1)+'" text-anchor="middle" font-size="11" font-weight="700" fill="#14171c">'+t+'</text>';
+    if(i%every===0||i===n-1&&n<=31)s+='<text x="'+(L+cw*i+cw/2).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="11" fill="#667085">'+(n>45?adFmt(d):d.slice(8).replace(/^0/,''))+'</text>'});
+  s+='</svg>';
+  el.innerHTML=(tot?'':'<p class="adnote" style="margin:8px 0">No activity logged '+(AD.who<0?'by the team':'by '+esc(A.designers[AD.who].name))+' in this period.</p>')+s+(n<=45&&n>1?'<div class="fine">Day of month: '+adFmt(a)+' – '+adFmt(b)+'</div>':'')}
+function adWire(){if(!$('#adBody'))return;adTrend();
+  document.querySelectorAll('[data-adp]').forEach(function(btn){btn.onclick=function(){AD.p=btn.dataset.adp;$('#adBody').innerHTML=adBody();adWire()}});
+  var s=$('#adWho');if(s)s.onchange=function(){AD.who=+s.value;adTrend()}}
+window.addEventListener('resize',function(){var t;clearTimeout(window.__adT);window.__adT=setTimeout(function(){if($('#adTrend'))adTrend()},150)});
