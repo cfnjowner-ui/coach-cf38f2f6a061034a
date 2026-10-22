@@ -548,12 +548,13 @@ function cbAgo(n){var d=new Date();d.setDate(d.getDate()-n);return ACT.ymd(d)}
 /* merged contact state: {pc:{ref:{a,d,t}}, deal:{ref:{a,d,t}}, dnc:{ref:1}} (deal = today only; dnc = Don't contact, permanent) */
 function cbState(x){var N=x.ns,td=ACT.ymd(new Date()),q=cbAgo(N.pc_quiet||60),st={pc:{},deal:{},dnc:{}};
   function add(kind,ref,a,d,t){if(kind==='pc'?(d<q||d>td):d!==td)return;var o=st[kind][ref];if(!o||(t||0)>(o.t||0))st[kind][ref]={a:a,d:d,t:t||0}}
-  function fromNote(n,d,t){var z=CB_DNC_RX.exec(n||'');if(z){st.dnc[z[1]]=1;return}var m=CB_RX.exec(n||'');if(m)add(m[1].toLowerCase(),m[2],m[3].charAt(0).toUpperCase()+m[3].slice(1).toLowerCase(),d,t)}
+  var RS=N.dnc_rs||{};function rsd(r,d){return Object.prototype.hasOwnProperty.call(RS,r)&&(!RS[r]||!d||d<=RS[r])}
+  function fromNote(n,d,t){var z=CB_DNC_RX.exec(n||'');if(z){if(!rsd(z[1],d))st.dnc[z[1]]=1;return}var m=CB_RX.exec(n||'');if(m)add(m[1].toLowerCase(),m[2],m[3].charAt(0).toUpperCase()+m[3].slice(1).toLowerCase(),d,t)}
   (N.pc_recent||[]).forEach(function(r){add('pc',r.ref,r.a,r.d,r.t)});
   if(N.asof===td)(N.deals||[]).forEach(function(p){if(p.touch)add('deal',p.ref,p.touch.a,td,p.touch.t)});
   ((x.activity&&x.activity.rows)||[]).forEach(function(r){fromNote(r.n,r.d,r.t)});
   ACT.load(x.slug).concat(actArch(x.slug)).forEach(function(e){fromNote(e.note,e.d,e.t)});
-  var L=cbLoad(x);['pc','deal'].forEach(function(k){Object.keys(L[k]).forEach(function(r){var o=L[k][r];add(k,r,o.a,o.d,o.t)})});Object.keys(L.dnc).forEach(function(r){st.dnc[r]=1});
+  var L=cbLoad(x);['pc','deal'].forEach(function(k){Object.keys(L[k]).forEach(function(r){var o=L[k][r];add(k,r,o.a,o.d,o.t)})});var ch=0;Object.keys(L.dnc).forEach(function(r){if(rsd(r,(L.dnc[r]||{}).d)){delete L.dnc[r];ch=1}else st.dnc[r]=1});if(ch)cbSave(x,L);
   return st}
 /* past-client list: ranked (top 10 + reserve) minus everyone contacted in the quiet window, first 10 */
 function cbPast(x,st){var N=x.ns;return (N.past||[]).concat(N.past_res||[]).filter(function(c){return !st.pc[c.ref]&&!st.dnc[c.ref]}).slice(0,10)}
