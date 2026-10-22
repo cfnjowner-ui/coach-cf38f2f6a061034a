@@ -1,6 +1,6 @@
 /* CFNJ Designer Coach. Static, private: data files are AES-256-GCM encrypted. Published site (kdf.json present, v2): ONE slow PBKDF2 (3,000,000 iterations, site salt) of the access code gives both the AES key and the file name, so file names never reveal a code. Local preview (no kdf.json, v1): SHA-256 file name + per-file PBKDF2. */
 'use strict';
-var D=null, CUR=null, LS='cfnj_coach_code';
+var D=null, CUR=null;
 var $=function(s){return document.querySelector(s)};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function b64(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
@@ -10,23 +10,56 @@ async function decrypt(blob,code){var base=await crypto.subtle.importKey('raw',n
   var pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(blob.iv)},k,b64(blob.ct));return JSON.parse(new TextDecoder().decode(pt))}
 /* Canonical form: Unicode NFKC, lowercase, then keep ONLY a-z and 0-9. Hyphens/spaces/smart dashes/punctuation/line breaks are ignored, so "Amber-Moon-Tiger-42", "amber moon tiger 42." and "ambermoontiger42" are the same code. */
 function canon(s){s=String(s==null?'':s);try{s=s.normalize('NFKC')}catch(e){}return s.toLowerCase().replace(/[^a-z0-9]/g,'')}
-var KDF=null;async function kdf(){if(KDF===null){try{var r=await fetch('kdf.json',{cache:'no-store'});KDF=r.ok?await r.json():false}catch(e){KDF=false}}return KDF}
+/* ── Remember this device (Andrew, Oct 21, 2026). After a successful unlock we store ONLY the PBKDF2 output m (32 bytes; 3,000,000
+   rounds of the code with the fixed site salt in kdf.json), never the typed code, in localStorage under a key scoped to this page path.
+   m gives both the file name (SHA-256(m|'|cfnj-fid')) and the AES key (SHA-256(m|'|cfnj-key')), so reopening is one fetch + one AES
+   decrypt (no 3M-round PBKDF2). The site salt is fixed (pub_kdf.json), so m keeps working across republishes; a fingerprint of the salt
+   is stored too, and a changed salt clears m. A rotated code -> its file is gone (404) or will not decrypt -> m is cleared and the code
+   box shows. A network error never clears m (shows Retry instead). m never leaves the device. Legacy plaintext codes
+   (key 'cfnj_coach_code', stored before this change) are migrated once and deleted. ── */
+var LSK='cfnj_coach_key_v2|'+location.pathname.replace(/index\.html$/,''), LS_OLD='cfnj_coach_code';
+function remGet(){try{var o=JSON.parse(localStorage.getItem(LSK)||'null');return o&&o.v===2&&o.m&&o.fp?o:null}catch(e){return null}}
+function remSet(o){try{localStorage.setItem(LSK,JSON.stringify(o));if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}catch(e){}}
+function remClear(){try{localStorage.removeItem(LSK);localStorage.removeItem(LS_OLD)}catch(e){}}
+function b64e(u){var s='';for(var i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s)}
+function NetErr(){var e=new Error('net');e.kind='net';return e}
+var KDF=null;async function kdf(){if(KDF===null){var r;try{r=await fetch('kdf.json',{cache:'no-store'})}catch(e){throw NetErr()}
+  if(r.ok)KDF=await r.json();else if(r.status===404)KDF=false;else throw NetErr()}return KDF}
 function hex(u){return Array.from(u).map(function(x){return x.toString(16).padStart(2,'0')}).join('')}
 async function h256(a,tag){var t=new TextEncoder().encode(tag),u=new Uint8Array(a.length+t.length);u.set(a);u.set(t,a.length);return new Uint8Array(await crypto.subtle.digest('SHA-256',u))}
-async function unlock2(code,K){var base=await crypto.subtle.importKey('raw',new TextEncoder().encode(code),'PBKDF2',false,['deriveBits']);
-  var m=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt:b64(K.salt),iterations:K.iter,hash:'SHA-256'},base,256));
-  var f=hex(await h256(m,'|cfnj-fid')).slice(0,24);var r=await fetch('d/'+f+'.json',{cache:'no-store'});if(!r.ok)throw new Error('nf');var blob=await r.json();
-  var k=await crypto.subtle.importKey('raw',await h256(m,'|cfnj-key'),{name:'AES-GCM'},false,['decrypt']);
-  var pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(blob.iv)},k,b64(blob.ct));return JSON.parse(new TextDecoder().decode(pt))}
-async function unlock(code){code=canon(code);var K=await kdf();if(K&&K.v===2)return unlock2(code,K);var f=await sha(code);var r=await fetch('d/'+f+'.json',{cache:'no-store'});if(!r.ok)throw new Error('nf');return decrypt(await r.json(),code)}
-function lock(msg){$('#lock').classList.remove('hidden');$('#lockerr').textContent=msg||'';$('#code').focus()}
-$('#lockform').addEventListener('submit',async function(e){e.preventDefault();var c=$('#code').value.trim();if(!c)return;$('#lockerr').textContent='Opening…';
-  try{D=await unlock(c);localStorage.setItem(LS,c);$('#lock').classList.add('hidden');start()}catch(err){$('#lockerr').textContent='That code did not work. Check it and try again.'}});
-$('#btnOut').onclick=function(){localStorage.removeItem(LS);location.hash='';location.reload()};
+async function saltFp(K){return hex(await h256(b64(K.salt),'|cfnj-salt-fp')).slice(0,16)}
+async function master2(code,K){var base=await crypto.subtle.importKey('raw',new TextEncoder().encode(code),'PBKDF2',false,['deriveBits']);
+  return new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt:b64(K.salt),iterations:K.iter,hash:'SHA-256'},base,256))}
+async function openM(m){var f=hex(await h256(m,'|cfnj-fid')).slice(0,24),r;      /* throws kind: 'gone' (no such file), 'bad' (will not decrypt), 'net' */
+  try{r=await fetch('d/'+f+'.json',{cache:'no-store'})}catch(e){throw NetErr()}
+  if(r.status===404){var g=new Error('gone');g.kind='gone';throw g}if(!r.ok)throw NetErr();
+  var blob;try{blob=await r.json()}catch(e){throw NetErr()}
+  var k=await crypto.subtle.importKey('raw',await h256(m,'|cfnj-key'),{name:'AES-GCM'},false,['decrypt']),pt;
+  try{pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(blob.iv)},k,b64(blob.ct))}catch(e){var b=new Error('bad');b.kind='bad';throw b}
+  return JSON.parse(new TextDecoder().decode(pt))}
+async function unlock(code,rem){code=canon(code);var K=await kdf();
+  if(K&&K.v===2){var m=await master2(code,K),d;try{d=await openM(m)}catch(e){if(e.kind==='net')throw e;throw new Error('nf')}
+    if(rem)remSet({v:2,fp:await saltFp(K),m:b64e(m),at:new Date().toISOString().slice(0,10)});else remClear();return d}
+  var f=await sha(code),r;try{r=await fetch('d/'+f+'.json',{cache:'no-store'})}catch(e){throw NetErr()}if(!r.ok)throw new Error('nf');return decrypt(await r.json(),code)}   /* local v1 preview: not remembered */
+function opening(on,msg){var o=$('#opening');if(!o)return;o.classList.toggle('hidden',!on);if(msg)$('#openmsg').textContent=msg}
+function lock(msg,retry){opening(false);$('#lock').classList.remove('hidden');$('#lockerr').textContent=msg||'';var rb=$('#retry');if(rb)rb.classList.toggle('hidden',!retry);if(!retry)$('#code').focus()}
+function standalone(){return window.navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)}
+(function(){var h=$('#lockhint');if(h&&standalone())h.textContent='This Home Screen icon keeps its own memory: enter your code once here and it is remembered on this icon.'})();
+$('#lockform').addEventListener('submit',async function(e){e.preventDefault();var c=$('#code').value.trim();if(!c)return;$('#lockerr').textContent='Opening…';var rem=!$('#remember')||$('#remember').checked;
+  try{D=await unlock(c,rem);$('#code').value='';$('#lock').classList.add('hidden');start()}catch(err){$('#lockerr').textContent=err&&err.kind==='net'?'Could not reach the page. Check your connection and try again.':'That code did not work. Check it and try again.'}});
+function signOut(){remClear();location.hash='';location.reload()}
+$('#btnOut').onclick=signOut;(function(){var l=$('#lnkOut');if(l)l.onclick=function(e){e.preventDefault();signOut()};var rb=$('#retry');if(rb)rb.onclick=function(){location.reload()}})();
 (async function init(){var q=new URLSearchParams(location.search);
   if(q.get('dev')&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){var r=await fetch(q.get('dev'),{cache:'no-store'});D=await r.json();return start()}
-  if(location.hash.indexOf('#k=')===0){var kk=decodeURIComponent(location.hash.slice(3));history.replaceState(null,'',location.pathname+location.search);try{D=await unlock(kk);localStorage.setItem(LS,kk);return start()}catch(e){return lock('That link did not work.')}}
-  var c=localStorage.getItem(LS);if(c){try{D=await unlock(c);return start()}catch(e){localStorage.removeItem(LS)}}lock()})();
+  if(location.hash.indexOf('#k=')===0){var kk=decodeURIComponent(location.hash.slice(3));history.replaceState(null,'',location.pathname+location.search);opening(true,'Opening…');try{D=await unlock(kk,true);opening(false);return start()}catch(e){return lock(e&&e.kind==='net'?'Could not reach the page. Check your connection.':'That link did not work.',e&&e.kind==='net')}}
+  var R=remGet();
+  if(R){opening(true,'Opening…');try{var K=await kdf();if(!K||K.v!==2||R.fp!==await saltFp(K)){remClear();return lock('Please enter your code again.')}
+      D=await openM(b64(R.m));opening(false);return start()}
+    catch(e){if(e&&e.kind==='net')return lock('Could not reach the page (no connection?). This device is still remembered: tap Retry.',true);remClear();return lock('Your code has changed. Please enter your current code.')}}
+  var c=null;try{c=localStorage.getItem(LS_OLD)}catch(e){}
+  if(c){opening(true,'Opening… (one-time update, a few seconds)');try{D=await unlock(c,true);try{localStorage.removeItem(LS_OLD)}catch(e){}opening(false);return start()}
+    catch(e){if(e&&e.kind==='net')return lock('Could not reach the page (no connection?). Tap Retry.',true);try{localStorage.removeItem(LS_OLD)}catch(e2){}}}
+  lock()})();
 /* ── formatting ── */
 function m0(v){return v==null||isNaN(v)?'–':(v<0?'−':'')+'$'+Math.round(Math.abs(v)).toLocaleString('en-US')}
 function mk(v){if(v==null||isNaN(v))return'–';var a=Math.abs(v);return(v<0?'−':'')+(a>=1e6?'$'+(a/1e6).toFixed(2)+'M':a>=1e4?'$'+Math.round(a/1e3)+'K':a>=1e3?'$'+(a/1e3).toFixed(1)+'K':'$'+Math.round(a))}
@@ -39,7 +72,7 @@ function copy(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.r
 function tile(k,v,s,c){return '<div class="tile"><div class="k">'+k+'</div><div class="v '+(c||'neu')+'">'+v+'</div>'+(s?'<div class="s">'+s+'</div>':'')+'</div>'}
 function sec(id,title,html){return '<section class="sec" id="'+id+'"><h2>'+title+'</h2>'+html+'</section>'}
 /* ── router ── */
-function start(){$('#btnOut').classList.remove('hidden');ACT.setForm(D.meta.activity_form||null);ACT.syncAll(D.meta.activity_form,window.ACT_ONSYNC);$('#sub').textContent='Data as of '+D.meta.asof+' · '+D.meta.month;
+function start(){$('#btnOut').classList.remove('hidden');var so=$('#signout');if(so)so.classList.remove('hidden');ACT.setForm(D.meta.activity_form||null);ACT.syncAll(D.meta.activity_form,window.ACT_ONSYNC);$('#sub').textContent='Data as of '+D.meta.asof+' · '+D.meta.month;
   if(D.kind==='designer'){document.body.classList.add('dview');$('#nav').innerHTML='';$('#ttl').textContent='My Coaching Page';route('d/'+D.designers[0].slug)}else{window.onhashchange=function(){route(location.hash.slice(1))};route(location.hash.slice(1)||'team')}}
 function nav(on){var t=[['team','Team'],['people','Designers'],['topics','Training topics'],['queue','Teams drafts'],['lib','Library'],['how','How it works']];
   $('#nav').innerHTML=t.map(function(x){return '<a href="#'+x[0]+'" class="'+(on===x[0]?'on':'')+'">'+x[1]+'</a>'}).join('')}

@@ -148,3 +148,10 @@ details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:
 #adTrend{margin-top:10px;overflow:hidden}.adsvg{display:block;max-width:100%;height:auto}
 .adhd span:nth-child(1){grid-area:n}
 @media(max-width:420px){#actdash .seg button{padding:6px 9px;font-size:12.5px}}
+
+/* remember this device (Oct 21, 2026) */
+#lockform .rem{display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;margin:2px 0 10px;color:var(--ink)}
+#lockform .rem input{width:20px;height:20px;margin:0;accent-color:var(--navy)}
+#lockform .retry{margin-top:8px;background:#fff;color:var(--navy);border:1px solid var(--navy)}
+.openbox{background:#fff;border-radius:16px;padding:22px 28px;text-align:center;font-weight:600}
+.signout{text-align:center;margin:-50px 0 40px;font-size:13px}.signout a{color:var(--mut)}

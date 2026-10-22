@@ -6,7 +6,7 @@
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#12263f">
 <title>CFNJ Designer Coach</title>
-<link rel="stylesheet" href="style.css?v=20261021d">
+<link rel="stylesheet" href="style.css?v=20261021e">
 </head><body>
 <header id="hdr">
   <div class="brand"><span class="logo">CF</span><div><h1 id="ttl">Designer Coach</h1><div class="sub" id="sub">Closet Factory NJ</div></div></div>
@@ -14,13 +14,17 @@
   <div class="ctl"><button id="btnOut" class="hidden" title="Lock">Lock</button></div>
 </header>
 <main id="main"></main>
+<p id="signout" class="signout hidden"><a href="#" id="lnkOut">Sign out on this device</a></p>
+<div id="opening" class="overlay hidden"><div class="openbox"><div class="logo big">CF</div><p id="openmsg">Opening…</p></div></div>
 <div id="lock" class="overlay hidden">
   <form id="lockform"><div class="logo big">CF</div><h2>Your coaching page</h2><p>Enter your personal access code.</p>
   <input id="code" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="access code">
-  <button type="submit">Open</button><div id="lockerr" class="err"></div>
+  <label class="rem"><input type="checkbox" id="remember" checked> Remember this device</label>
+  <button type="submit">Open</button><div id="lockerr" class="err"></div><button type="button" id="retry" class="hidden retry">Retry</button>
+  <p class="fine" id="lockhint">Enter it once: this phone remembers you. Opened from Teams or email? Use "Open in Safari/Chrome" (or add it to your Home Screen) so it is remembered.</p>
   <p class="fine">Private to you and Andrew. Data: ClosetWare (read-only), refreshed daily.</p></form>
 </div>
 <div id="toast" class="hidden"></div>
-<script src="activity.js?v=20261021d"></script>
-<script src="app.js?v=20261021d"></script>
+<script src="activity.js?v=20261021e"></script>
+<script src="app.js?v=20261021e"></script>
 </body></html>
