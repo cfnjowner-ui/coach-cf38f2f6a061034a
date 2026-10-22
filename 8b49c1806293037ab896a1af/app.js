@@ -428,12 +428,12 @@ function goalPlanSec(x){var s=x.snap,g=x.goal,M=D.meta,T=D.team,dl=Math.max(1,M.
    30,000-ft roll-up. Data: x.ns / D.owner.ns built by nextsteps.py. Colors: good = green/neutral, bad = red/amber, facts neutral. ── */
 var NS_RULES=[['Note says signed','Confirm the paperwork and move to Sold (Designer) today','CFNJ stage rules'],
  ['Appointment booked within 3 weeks','Run it to a decision: agree up front on a yes, a no or a dated next visit; offer the Fanwood showroom on $5,000+ designs','Sandler up-front contract'],
- ['Next step more than 3 weeks out','Check in now with the showroom offer (it ends Nov 7)','Rackham "advance"; real-deadline urgency'],
+ ['Next step more than 3 weeks out','Check in now with this month\'s showroom special','Rackham "advance"; honest urgency (this month\'s special)'],
  ['Planned step in the note passed within 14 days','Log what happened and book the next visit today','CFNJ three-outcome rule'],
  ['Note mentions a spouse/partner','Joint review with both decision-makers at the showroom','Miller Heiman buying influences; Sandler one-legged calls'],
  ['Note mentions price/budget','Show the full and a phased version; Lowe\'s 0%/18 months only for Lowe\'s leads, otherwise Enhancify (terms depend on credit)','SPIN need-payoff; good/better/best'],
  ['Note mentions another company','Showroom side-by-side: own Fanwood factory, lifetime guarantee','Challenger teach & tailor'],
- ['Note mentions timing/project','Agree a dated decision; the showroom offer ends Nov 7','SPIN implication; real deadlines only'],
+ ['Note mentions timing/project','Agree a dated decision; mention this month\'s showroom special','SPIN implication; honest urgency only'],
  ['Quote under 30 days, no dated step','Book the showroom review visit (24-72 h, day 7, day 14 rhythm)','HBR lead-response research; 24-72-7-14'],
  ['No dated note 14+ days','Call with a reason: the showroom invite; the goal is a firm appointment, not a sale on the call','24-72-7-14 rhythm; Rackham "advance"'],
  ['Appointment 90+ days ago, quiet','Re-open with an updated design. Aged quotes are still winnable: they got old because the follow-up stopped','Rackham "advance"']];
