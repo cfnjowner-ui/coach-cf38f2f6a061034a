@@ -294,7 +294,7 @@ function actRender(x){ACT_CUR=x;var F=D.meta.activity_form,es=actAll(x),np=ACT.p
    '<p class="small" style="margin:8px 0 0">'+(tot(s.month)?'This is your own count of the work behind your sales. Busy weeks and quiet weeks both show up here, so you can see the pattern for yourself.':'Nothing logged this month yet. Log today and watch your week build up.')+'</p>'+
    '<div class="actrow"><button type="button" class="btn" id="actShare">Export / share my week</button>'+'</div></div>';
   var rec=es.slice().sort(function(a,b){return b.t-a.t}).slice(0,10);
-  h+='<details><summary>Recent entries ('+es.length+')</summary>'+(rec.length?rec.map(function(e){return '<div class="aent"><div><b>'+esc(e.d.slice(5).replace('-','/'))+'</b> · '+C.filter(function(c){return e.c[c.k]}).map(function(c){return c.i+' '+e.c[c.k]}).join(' ')+(e.s==='sheet'?' <span class="chip g" title="In Andrew\'s activity log; shows on all your devices">✓ synced</span>'+(e.p?' <span class="chip">owner preview</span>':''):e.s==='sent'?' <span class="chip g" title="Sent to Andrew">✓ sent</span>':e.s==='pending'?' <span class="chip" title="Will send when online">⏳ pending</span>':'')+(e.note?'<div class="small">'+esc(e.note)+'</div>':'')+'</div>'+(e.s==='sheet'||e.arch?'':'<button type="button" class="adel" data-id="'+esc(e.id)+'" aria-label="Delete entry">✕</button>')+'</div>'}).join(''):'<p class="small">No entries yet.</p>')+'</details>';
+  h+='<details><summary>Recent entries ('+es.length+')</summary>'+(rec.length?rec.map(function(e){return '<div class="aent"><div><b>'+esc(e.d.slice(5).replace('-','/'))+'</b> · '+C.filter(function(c){return e.c[c.k]}).map(function(c){return c.i+' '+e.c[c.k]}).join(' ')+(e.s==='sheet'?' <span class="chip g" title="In Andrew\'s activity log; shows on all your devices">✓ synced</span>'+(e.p?' <span class="chip">owner preview</span>':''):e.s==='sent'?' <span class="chip g" title="Sent to Andrew">✓ sent</span>':e.s==='pending'?' <span class="chip" title="Will send when online">⏳ pending</span>':e.s==='hold'?' <span class="chip" title="Sends in a few seconds (Undo window)">⏳ sending…</span>':'')+(e.note?'<div class="small">'+esc(e.note)+'</div>':'')+'</div>'+(e.s==='sheet'||e.arch?'':'<button type="button" class="adel" data-id="'+esc(e.id)+'" aria-label="Delete entry">✕</button>')+'</div>'}).join(''):'<p class="small">No entries yet.</p>')+'</details>';
   h+='<div class="card"><b class="small">Suggested weekly targets (from the CFNJ playbook and your own numbers)</b><ul class="tight small">'+actTargetText(tg).map(function(t){return '<li>'+t+'</li>'}).join('')+'</ul>'+
    '<p class="fine" style="margin:6px 0 0"><b>Where this is saved:</b> '+(x.activity?'each entry is saved on this device right away and sent to Andrew\'s activity log. That log is your running total: it shows on every device you use, refreshed through the day, so switching phones or computers keeps your history.':'in this browser on this device'+(F?', and each entry is also sent to Andrew':'')+'. Clearing browser data, private browsing, or switching phones starts a fresh log here.')+'</p></div>';
   $('#actTotals').innerHTML=h;
@@ -377,10 +377,22 @@ function adBody(){var A=D.act_dash,C=ACT.CATS,r=adRange(),a=r[0],b=r[1],rows=A.r
     per.map(function(p){var z=!p.tot;return '<div class="adr'+(z?' adz':'')+'"><span class="adn">'+esc(p.d.name)+'</span>'+
       '<span class="adm">'+(z?'<span class="chip">No activity logged</span>':adStack(p.c,p.tot,max)+'<span class="adcnt">'+C.filter(function(k){return p.c[k.k]}).map(function(k){return '<em style="color:'+AD_COL[k.k]+'">'+k.i+'</em>'+p.c[k.k]}).join(' ')+'</span>')+'</span>'+
       '<span class="adv"><b>'+(z?'0':n0(p.tot))+'</b><small> actions</small></span><span class="adv">'+p.nd+'<small> '+(p.nd===1?'day':'days')+'</small></span><span class="adv adl">'+(p.last?'<small>last </small>'+adFmt(p.last):'<small>never logged</small>')+'</span></div>'}).join('')+'</div>'+adLegend()+'</div>';
+  h+=adCb(rows,plab,a,b);
   h+='<div class="card"><div class="gph"><div><b>📈 Actions per day</b> <span class="small">· '+esc(plab)+'</span></div><select id="adWho" aria-label="Designer"><option value="-1">Whole team</option>'+
     A.designers.map(function(d,i){return '<option value="'+i+'"'+(AD.who===i?' selected':'')+'>'+esc(d.name)+'</option>'}).join('')+'</select></div><div id="adTrend"></div>'+adLegend()+'</div>';
   h+='<p class="fine">Counts and dates only; notes are never shown here (they can mention clients). Not counted: '+A.excluded.test+' test / owner-preview entries'+(A.excluded.other?' and '+A.excluded.other+' entries whose Designer name matches no approved designer':'')+'. They still appear in the Activity log card. Updates with every activity sync.</p>';
   return h}
+/* contact-button taps (rows with b=[pc|deal, Action, record #]); test / owner-preview rows are already excluded by coach.py */
+function adCb(rows,plab,a,b){var A=D.act_dash,per=A.designers.map(function(d){return{d:d,pc:0,pcs:{},deal:0,deals:{},a:{Texted:0,Called:0,Visited:0,Emailed:0}}}),T={pc:0,pcs:{},deal:0,deals:{}};
+  rows.forEach(function(x){if(!x.b)return;var p=per[x.i],k=x.b[0],r=x.b[2]||'';p.a[x.b[1]]=(p.a[x.b[1]]||0)+1;
+    if(k==='pc'){p.pc++;T.pc++;if(r){p.pcs[r]=1;T.pcs[r]=1}}else{p.deal++;T.deal++;if(r){p.deals[r+'|'+x.d]=1;T.deals[r]=1}}});
+  var on=per.filter(function(p){return p.pc||p.deal});on.sort(function(x,y){return (y.pc+y.deal)-(x.pc+x.deal)||x.d.name.localeCompare(y.d.name)});
+  var nk=function(o){return Object.keys(o).length};
+  return '<div class="card"><b>📇 Contact buttons</b> <span class="small">· '+esc(plab)+' · taps on 💬 Texted / 📞 Called / 🏠 Visited / ✉️ Emailed (already counted in the totals above)</span>'+
+    '<div class="adtiles" style="margin-top:8px"><div class="adt"><div class="k">Past clients contacted</div><div class="v">'+n0(nk(T.pcs))+'</div><div class="s">'+n0(T.pc)+' tap'+(T.pc===1?'':'s')+'</div></div><div class="adt"><div class="k">Deals touched</div><div class="v">'+n0(nk(T.deals))+'</div><div class="s">'+n0(T.deal)+' tap'+(T.deal===1?'':'s')+'</div></div></div>'+
+    (on.length?'<div class="adlist"><div class="adr adhd cbr"><span>Designer</span><span>Past clients</span><span>Deals</span><span>How</span></div>'+on.map(function(p){return '<div class="adr cbr"><span class="adn">'+esc(p.d.name)+'</span><span class="adv"><b>'+nk(p.pcs)+'</b><small> contacted</small></span><span class="adv"><b>'+nk(p.deals)+'</b><small> touched</small></span><span class="adv adcnt">'+CB_ACT.filter(function(z){return p.a[z[0]]}).map(function(z){return z[1]+p.a[z[0]]}).join(' ')+'</span></div>'}).join('')+'</div>'
+      :'<p class="adnote" style="margin:8px 0">No contact-button taps synced for '+esc(plab.toLowerCase())+' yet. They show here after the next activity sync (:20 and :40 past the hour).</p>')+
+    '<p class="fine">Deals touched counts each deal once per day. Record numbers stay in the Activity Sheet; client names are never shown here.</p></div>'}
 function adTrend(){var el=$('#adTrend');if(!el)return;var A=D.act_dash,C=ACT.CATS,r=adRange(),a=r[0],b=r[1],days=[],by={};
   for(var d=a,g=0;d<=b&&g<400;d=adShift(d,1),g++){days.push(d);by[d]=adZero()}
   A.rows.forEach(function(x){if(by[x.d]&&(AD.who<0||x.i===AD.who))C.forEach(function(k){by[x.d][k.k]+=+(x.c[k.k]||0)})});
@@ -437,7 +449,7 @@ var NS_RULES=[['Note says signed','Confirm the paperwork and move to Sold (Desig
  ['Quote under 30 days, no dated step','Book the showroom review visit (24-72 h, day 7, day 14 rhythm)','HBR lead-response research; 24-72-7-14'],
  ['No dated note 14+ days','Call with a reason: the showroom invite; the goal is a firm appointment, not a sale on the call','24-72-7-14 rhythm; Rackham "advance"'],
  ['Appointment 90+ days ago, quiet','Re-open with an updated design. Aged quotes are still winnable: they got old because the follow-up stopped','Rackham "advance"']];
-var NS_F={};
+var NS_F={},NS_APPLY=null;
 /* Past-client texting do's and don'ts (Andrew, Oct 22, 2026; modeled on the past-client text a CFNJ designer shared in the Design Team chat). Sources: playbook s.15. */
 var NS_DOS=[['do','Personalize: their first name, their project, from you. Lead with the relationship, not the pitch.','Reichheld, HBR 2003; HBR 2014 on keeping customers'],
  ['do','Make one clear ask: reply to you (or book a showroom visit).','Rackham: aim for an "advance"'],
@@ -460,7 +472,13 @@ function nsCard(p,T){var tod=p.due===T,dc='';
   '<div class="nsa"><span class="chip '+dc+'">'+(tod?'Due today':'By '+esc(p.due_l))+'</span><b>'+esc(p.label)+'</b></div>'+
   '<div class="small nsm">'+esc(p.room)+' · '+esc(p.stage)+' · '+esc(p.src)+(p.chips||[]).map(function(c){return ' <span class="chip '+(c==='showroom upgrade'?'g':'')+'">'+esc(c)+'</span>'}).join('')+'</div>'+
   '<div class="why small"><b>Why:</b> '+p.why.map(esc).join(' · ')+'</div>'+
-  '<div class="nss"><span>'+esc(p.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></div>'}
+  '<div class="nss"><span>'+esc(p.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>'+cbBtns('deal',p.ref)+'</div>'}
+function pcCard(c,P){return '<div class="nsd pc" data-pref="'+esc(c.ref)+'"><div class="top"><span><b>'+nsWho(c)+'</b> <span class="ref">'+esc(c.ref)+'</span></span><span class="amt">'+m0(c.usd)+'</span></div>'+
+    '<div class="small nsm">'+esc(c.rooms.join(', '))+' · sold '+esc(c.sold)+(c.n>1?' · '+c.n+' projects':'')+' '+c.tags.map(function(t){return '<span class="chip '+(t.indexOf('Lowe')===0?'':'g')+'">'+esc(t)+'</span>'}).join('')+'</div>'+
+    '<div class="why small"><b>Why this person:</b> '+esc(c.why)+(c.fit?' <span class="chip">'+esc(c.fit)+'</span>':'')+'</div>'+
+    (c.text?'<div class="small nslab"><b>📱 Text (ready to send)</b></div><div class="nss nstx"><span>'+esc(c.text)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>':'')+
+    (c.lowes&&P.lowes.window_note?'<div class="fine nslw">For you only, not in the text: '+esc(P.lowes.window_note)+' '+esc(P.lowes.terms_note||'')+'</div>':'')+
+    '<details class="nscall"><summary class="small"><b>📞 Call version</b></summary><div class="nss"><span>'+esc(c.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></details>'+cbBtns('pc',c.ref)+'</div>'}
 function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N.deals||[];
   h+=nsPromo(P);
   h+='<div class="grid">'+tile('In play',m0(N.usd),N.n+' open quote'+(N.n===1?'':'s')+' · every one is winnable','neu')+tile('Due today',n0(N.today_n),'next steps to do today ('+N.per_day+' a day, biggest $ first)',N.today_n?'neu':'neu')+
@@ -468,19 +486,16 @@ function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N
   if(!ds.length)h+='<div class="card"><p class="small" style="margin:0">No open quotes right now. Your past clients below are the fastest way to build October.</p></div>';
   else{h+='<div class="card"><div class="nsbar"><div class="seg nsf"><button data-f="all" class="on">All '+ds.length+'</button><button data-f="due">Today</button><button data-f="sr">Showroom</button><button data-f="lw">Lowe\'s</button></div><div class="seg nso"><button data-o="pri" class="on">Priority</button><button data-o="usd">$</button></div></div>'+
    '<p class="fine" style="margin:4px 0 8px">One next step per quote, ordered by dollars × urgency. Tap Copy for the talk track; tick the box when it is done (saved on this device). After each call, write the one-line note: date, place, time.</p><div id="nsl">'+ds.map(function(p){return nsCard(p,T)}).join('')+'</div>'+
-   (ds.length>8?'<button class="btn ghost" id="nsmore" type="button" style="width:100%">Show all '+ds.length+'</button>':'')+'</div>'}
+   (ds.length>8?'<button class="btn ghost" id="nsmore" type="button" style="width:100%">Show all '+ds.length+'</button>':'')+
+   '<div id="nstd" class="nstd hidden"><div class="nstdh"><b>✓ Contacted today</b> <span class="small" id="nstdn"></span></div><p class="fine" style="margin:2px 0 6px">Logged with the buttons. Each one goes back to its normal place in your list tomorrow. Tap a name to open the card.</p><div id="nstdl"></div></div></div>'}
   h+='<details class="card"><summary><b>How each next step is picked</b> <span class="small">(rules + sources)</span></summary><ul class="tight small">'+NS_RULES.map(function(r){return '<li><b>'+esc(r[0])+'</b> → '+esc(r[1])+' <span class="fine">('+esc(r[2])+')</span></li>'}).join('')+'</ul><p class="fine">First rule that fits wins. Read from ClosetWare (stage, amount, appointment, follow-up date, dated notes) by rule, not by meaning: if the tag is wrong, trust what you know about the client. Never treat a quote as gone: a quiet quote needs a reason to call.</p></details>';
   var out=sec('close','💼 Close this month',h);
   /* past clients */
   var pc=N.past||[],ph='';
   ph+=nsDos();
-  ph+='<div class="card"><p class="small" style="margin:0 0 8px">'+(pc.length?'<b>Past clients are your most important contacts right now.</b> Each one has a ready-to-send text (modeled on a past-client text that works on our team; put your own cell where it says [your cell]) and a short call version. Your top '+pc.length+' past clients to contact in October (from '+N.past_pool+' sold clients since Jan 2025, 60+ days after the sale), best opportunity first. No contact details here: look them up in ClosetWare by the record number.':'No past clients in the window (sold Final since Jan 2025, 60+ days ago).')+'</p>'+
-   pc.map(function(c){return '<div class="nsd pc"><div class="top"><span><b>'+nsWho(c)+'</b> <span class="ref">'+esc(c.ref)+'</span></span><span class="amt">'+m0(c.usd)+'</span></div>'+
-    '<div class="small nsm">'+esc(c.rooms.join(', '))+' · sold '+esc(c.sold)+(c.n>1?' · '+c.n+' projects':'')+' '+c.tags.map(function(t){return '<span class="chip '+(t.indexOf('Lowe')===0?'':'g')+'">'+esc(t)+'</span>'}).join('')+'</div>'+
-    '<div class="why small"><b>Why this person:</b> '+esc(c.why)+(c.fit?' <span class="chip">'+esc(c.fit)+'</span>':'')+'</div>'+
-    (c.text?'<div class="small nslab"><b>📱 Text (ready to send)</b></div><div class="nss nstx"><span>'+esc(c.text)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>':'')+
-    (c.lowes&&P.lowes.window_note?'<div class="fine nslw">For you only, not in the text: '+esc(P.lowes.window_note)+' '+esc(P.lowes.terms_note||'')+'</div>':'')+
-    '<details class="nscall"><summary class="small"><b>📞 Call version</b></summary><div class="nss"><span>'+esc(c.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></details></div>'}).join('')+
+  ph+='<div class="card"><p class="small" style="margin:0 0 8px">'+(pc.length?'<b>Past clients are your most important contacts right now.</b> Each one has a ready-to-send text (modeled on a past-client text that works on our team; put your own cell where it says [your cell]) and a short call version. These are your <span id="pcn">'+Math.min(10,pc.length)+'</span> best past clients to contact in October (from '+N.past_pool+' sold clients since Jan 2025, 60+ days after the sale), best opportunity first. No contact details here: look them up in ClosetWare by the record number.':'No past clients in the window (sold Final since Jan 2025, 60+ days ago).')+'</p>'+
+   (pc.length?'<p class="small cbhelp"><b>After you reach out, tap what you did</b> (💬 Texted · 📞 Called · 🏠 Visited · ✉️ Emailed). It is logged in your activity and sent to Andrew, that client leaves your list for '+(N.pc_quiet||60)+' days and the next best past client moves up. Changed your mind? Tap Undo within 5 seconds.</p>':'')+
+   '<div id="pcl"></div><p class="small hidden" id="pcend"></p>'+
    '<p class="fine">Ask every happy client for a referral; enter any lead they give you as designer-created. Installed is estimated (sold Final 60+ days ago; install lead time runs 40-60 days).</p></div>';
   out+=sec('pastc','📞 Call past clients (October)',ph);
   /* strengths / habits */
@@ -497,9 +512,123 @@ function nsWire(x){var N=x.ns;if(!N)return;var key='cfnj_ns_done_'+x.slug,st={};
   document.querySelectorAll('.nsf button').forEach(function(b){b.onclick=function(){f=b.dataset.f;document.querySelectorAll('.nsf button').forEach(function(z){z.classList.toggle('on',z===b)});apply()}});
   document.querySelectorAll('.nso button').forEach(function(b){b.onclick=function(){o=b.dataset.o;document.querySelectorAll('.nso button').forEach(function(z){z.classList.toggle('on',z===b)});apply()}});
   if(more)more.onclick=function(){all=true;apply()};
-  document.querySelectorAll('.nscp').forEach(function(b){b.onclick=function(){copy(b.previousElementSibling.textContent)}});
+  document.querySelectorAll('#close .nscp').forEach(function(b){b.onclick=function(){copy(b.previousElementSibling.textContent)}});
   document.querySelectorAll('.nsd[data-ref]').forEach(function(c){var cb=c.querySelector('.nsdone'),r=c.dataset.ref;if(!cb)return;cb.checked=!!st[r];c.classList.toggle('done',cb.checked);cb.onchange=function(){st[r]=cb.checked?D.meta.today:0;if(!cb.checked)delete st[r];c.classList.toggle('done',cb.checked);try{localStorage.setItem(key,JSON.stringify(st))}catch(e){}}});
-  apply()}
+  apply();NS_APPLY=apply;cbWire(x)}
+/* ── Contact buttons (Andrew, Oct 22, 2026, 12:38 PM). Past-client and deal cards carry 💬 Texted · 📞 Called · 🏠 Visited · ✉️ Emailed.
+   A tap = one tracker entry (same localStorage log, same Google Form, same SHA-256 dedupe key as "Save my note"):
+     Counts: the tracker's 8-key string with 1 in the matching box: Texted/Emailed -> texts_emails, Called -> calls, Visited -> appts
+             (the tracker's own voice parser maps "visit" to appointments held).
+     Note:   "[pc] Past client #<ref> - Texted (14:05:09)" / "[deal] Opp #<ref> - Called (14:05:09)". Record number only, no client name or
+             contact data. The tap time makes each tap unique, so a row that is ever sent twice is an exact duplicate (activity_rows.load drops it).
+     Detail (optional): "[pc] Past client #<ref> - detail: <text> (14:06:30)", all counts 0, phone numbers / emails masked.
+   Undo: the entry is saved at once with s='hold' (shows in the log right away) and sent after CB_HOLD ms. Undo inside that window deletes
+   it, so nothing reaches the Sheet. If the page is hidden or closed first, every held entry is promoted to 'pending' and sent with
+   fetch keepalive; anything that still did not go out is sent on the next open (ACT.sync promotes expired holds). Nothing is lost and
+   an undone tap never creates a row.
+   Past clients: a tapped client leaves the list for pc_quiet (60) days; the next one from the reserve (ns.past_res) is appended; never
+   more than 10 shown. Deals: never removed; the card moves to the "Contacted today" strip under the deal list until tomorrow.
+   State = this device's taps (cfnj_cb_v1_<slug>) + the tracker log on this device + the Sheet rows in the bundle (x.activity) + the
+   build's pc_recent / deal touch (Activity Sheet, synced :20/:40 and hourly), merged by record number, so phone and computer agree
+   after the next sync and nothing counts twice (counting is the tracker's key-based Sheet/local merge). ── */
+var CB_ACT=[['Texted','💬','texts'],['Called','📞','calls'],['Visited','🏠','appts'],['Emailed','✉️','texts']],CB_HOLD=5000,CB_T={},CB_X=null,CB_SHEET=null;
+var CB_RX=/^\s*\[(pc|deal)\]\s*(?:past client|opp)\s*#([A-Za-z0-9]{4,18})\s*-\s*(texted|called|visited|emailed)\b/i;
+function cbBtns(kind,ref){return '<div class="cbb" role="group" aria-label="Log a contact">'+CB_ACT.map(function(a){return '<button type="button" class="cbt" data-cb="'+a[0]+'" data-kind="'+kind+'" data-ref="'+esc(ref)+'"><span aria-hidden="true">'+a[1]+'</span>'+a[0]+'</button>'}).join('')+'</div>'}
+function cbPad(n){return String(n).padStart(2,'0')}
+function cbHms(d){return cbPad(d.getHours())+':'+cbPad(d.getMinutes())+':'+cbPad(d.getSeconds())}
+function cbClock(t){var d=new Date(t);return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}
+function cbNote(kind,ref,a,d,detail){return (kind==='pc'?'[pc] Past client #':'[deal] Opp #')+ref+' - '+(detail!=null?'detail: '+detail:a)+' ('+cbHms(d)+')'}
+function cbMask(t){return String(t||'').replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[email]').replace(/\+?\d[\d\s().-]{8,}\d/g,'[phone]').replace(/\s+/g,' ').trim().slice(0,400)}
+function cbKey(x){return 'cfnj_cb_v1_'+x.slug}
+function cbLoad(x){try{var o=JSON.parse(localStorage.getItem(cbKey(x))||'{}');return{pc:o.pc||{},deal:o.deal||{}}}catch(e){return{pc:{},deal:{}}}}
+function cbSave(x,o){var q=cbAgo(x.ns.pc_quiet||60);Object.keys(o.pc).forEach(function(r){if(o.pc[r].d<q)delete o.pc[r]});
+  Object.keys(o.deal).forEach(function(r){if(o.deal[r].d<ACT.ymd(new Date()))delete o.deal[r]});try{localStorage.setItem(cbKey(x),JSON.stringify(o))}catch(e){}}
+function cbAgo(n){var d=new Date();d.setDate(d.getDate()-n);return ACT.ymd(d)}
+/* merged contact state: {pc:{ref:{a,d,t}}, deal:{ref:{a,d,t}}} (deal = today only) */
+function cbState(x){var N=x.ns,td=ACT.ymd(new Date()),q=cbAgo(N.pc_quiet||60),st={pc:{},deal:{}};
+  function add(kind,ref,a,d,t){if(kind==='pc'?(d<q||d>td):d!==td)return;var o=st[kind][ref];if(!o||(t||0)>(o.t||0))st[kind][ref]={a:a,d:d,t:t||0}}
+  function fromNote(n,d,t){var m=CB_RX.exec(n||'');if(m)add(m[1].toLowerCase(),m[2],m[3].charAt(0).toUpperCase()+m[3].slice(1).toLowerCase(),d,t)}
+  (N.pc_recent||[]).forEach(function(r){add('pc',r.ref,r.a,r.d,r.t)});
+  if(N.asof===td)(N.deals||[]).forEach(function(p){if(p.touch)add('deal',p.ref,p.touch.a,td,p.touch.t)});
+  ((x.activity&&x.activity.rows)||[]).forEach(function(r){fromNote(r.n,r.d,r.t)});
+  ACT.load(x.slug).concat(actArch(x.slug)).forEach(function(e){fromNote(e.note,e.d,e.t)});
+  var L=cbLoad(x);['pc','deal'].forEach(function(k){Object.keys(L[k]).forEach(function(r){var o=L[k][r];add(k,r,o.a,o.d,o.t)})});
+  return st}
+/* past-client list: ranked (top 10 + reserve) minus everyone contacted in the quiet window, first 10 */
+function cbPast(x,st){var N=x.ns;return (N.past||[]).concat(N.past_res||[]).filter(function(c){return !st.pc[c.ref]}).slice(0,10)}
+function cbPcRender(x,anim){var L=$('#pcl');if(!L)return;var st=cbState(x),want=cbPast(x,st),have={};
+  [].slice.call(L.querySelectorAll('.nsd.pc')).forEach(function(el){var r=el.dataset.pref;if(want.some(function(c){return c.ref===r}))have[r]=el;else el.remove()});
+  want.forEach(function(c){var el=have[c.ref];if(!el){var t=document.createElement('div');t.innerHTML=pcCard(c,x.ns.promo);el=t.firstChild;cbWireCard(el);if(anim){el.classList.add('cbin');setTimeout(function(){el.classList.remove('cbin')},600)}}L.appendChild(el)});
+  var n=$('#pcn');if(n)n.textContent=want.length;var e=$('#pcend'),nc=Object.keys(st.pc).length;
+  if(e){e.classList.toggle('hidden',!nc&&want.length===10);e.innerHTML=(nc?'✓ '+nc+' past client'+(nc===1?'':'s')+' contacted in the last '+(x.ns.pc_quiet||60)+' days (off the list for now). ':'')+(want.length<10&&(x.ns.past||[]).length?'<b>That is everyone on your list for now.</b> More come in with the next refresh as clients reach 60 days after the sale.':'')}}
+function cbDealRender(x){var S=$('#nstd'),SL=$('#nstdl'),L=$('#nsl');if(!S||!L)return;var st=cbState(x),n=0;
+  document.querySelectorAll('#nsl .nsd[data-ref], #nstdl .nsd[data-ref]').forEach(function(el){var r=el.dataset.ref,t=st.deal[r],ch=el.querySelector('.cbdone');
+    if(t){if(el.parentNode!==SL)SL.appendChild(el);el.classList.add('tch');n++;if(!ch){ch=document.createElement('span');ch.className='chip g cbdone';el.querySelector('.top').appendChild(ch)}ch.textContent='✓ '+t.a+' '+cbClock(t.t||Date.now())}
+    else if(el.parentNode===SL){el.classList.remove('tch','open');if(ch)ch.remove();L.appendChild(el)}});
+  S.classList.toggle('hidden',!n);$('#nstdn').textContent=n?'· '+n+' deal'+(n===1?'':'s'):'';if(NS_APPLY)NS_APPLY()}
+function cbWireCard(el){el.querySelectorAll('.nscp').forEach(function(b){b.onclick=function(){copy(b.previousElementSibling.textContent)}})}
+/* entry helpers (tracker log) */
+function cbEntry(x,kind,ref,a,detail){var now=new Date(),F=D.meta.activity_form,c={},cat=null;if(detail==null){CB_ACT.forEach(function(z){if(z[0]===a)cat=z[2]});c[cat]=1}
+  var e={id:Date.now()+'-'+Math.random().toString(36).slice(2,7),d:ACT.ymd(now),t:+now,c:c,note:cbNote(kind,ref,a,now,detail),cb:kind};
+  if(F){e.w=actWho(x);if(detail==null){e.s='hold';e.hu=+now+CB_HOLD}else e.s='pending'}
+  var es=ACT.load(x.slug);es.push(e);if(!ACT.save(x.slug,es))return null;
+  actKey(e.w||actWho(x),e).then(function(k){var a2=ACT.load(x.slug);a2.forEach(function(z){if(z.id===e.id)z.k=k});ACT.save(x.slug,a2)},function(){});
+  return e}
+function cbSend(x){var F=D.meta.activity_form;if(!F)return;ACT.sync(x.slug,F,function(ch){if(ch&&window.ACT_ONSYNC)window.ACT_ONSYNC(x.slug)})}
+function cbCommit(x,id){clearTimeout(CB_T[id]);delete CB_T[id];var es=ACT.load(x.slug),hit=false;es.forEach(function(e){if(e.id===id&&e.s==='hold'){e.s='pending';delete e.hu;hit=true}});if(hit){ACT.save(x.slug,es);cbSend(x)}}
+/* page closing / hidden inside the Undo window: hand every held tap to the browser with navigator.sendBeacon (the web's built-in "deliver this
+   even though the page is going away"; the browser queues it and sends after unload). Beacon accepted -> marked sent. Not available or refused
+   -> 'pending' + keepalive fetch now, and the normal retry on the next open. A rare double delivery is the identical row (same tap time) and
+   activity_rows.load keeps one. */
+function cbFlushAll(){var x=CB_X;if(!x)return;var F=D.meta.activity_form,es=ACT.load(x.slug),hit=false;es.forEach(function(e){if(e.s!=='hold')return;delete e.hu;
+    var ok=false;try{ok=!!(F&&e.w&&navigator.sendBeacon&&navigator.sendBeacon(F.url,new URLSearchParams(ACT.payload(F,e.w,e))))}catch(_){ok=false}
+    if(ok){e.s='sent';e.sa=Date.now();e.sb=1}else{e.s='pending';hit=true}});ACT.save(x.slug,es);
+  Object.keys(CB_T).forEach(function(k){clearTimeout(CB_T[k]);delete CB_T[k]});if(hit){ACT.save(x.slug,es);cbSend(x)}
+  if(CB_SHEET&&CB_SHEET.held){CB_SHEET.held=false;var u=$('#cbUndo');if(u)u.remove();var m=$('#cbMsg');if(m)m.textContent=CB_SHEET.done}}
+function cbRefresh(x,anim){cbPcRender(x,anim);cbDealRender(x);if($('#actTotals')&&ACT_CUR)actRender(ACT_CUR)}
+/* a tap */
+function cbTap(x,btn){var kind=btn.dataset.kind,ref=btn.dataset.ref,a=btn.dataset.cb,card=btn.closest('.nsd');
+  var e=cbEntry(x,kind,ref,a);if(!e){toast('Could not save on this device (storage is off or full)');return}
+  var L=cbLoad(x),prev=L[kind][ref]||null;L[kind][ref]={a:a,d:e.d,t:e.t};cbSave(x,L);
+  if(e.s==='hold')CB_T[e.id]=setTimeout(function(){cbCommit(x,e.id);if(CB_SHEET&&CB_SHEET.id===e.id){CB_SHEET.held=false;var u=$('#cbUndo');if(u)u.remove();var m=$('#cbMsg');if(m)m.textContent=CB_SHEET.done}},CB_HOLD);
+  var what=(kind==='pc'?'Past client #':'Deal #')+ref;
+  if(card&&kind==='pc'){card.classList.add('cbout');setTimeout(function(){cbRefresh(x,true)},330)}
+  else if(card){card.classList.add('cbout');setTimeout(function(){card.classList.remove('cbout','open');cbRefresh(x,false)},330)}else cbRefresh(x,true);
+  cbSheet(x,{id:e.id,kind:kind,ref:ref,a:a,prev:prev,what:what,held:e.s==='hold',done:'✓ '+a+' · '+what+' · logged'})}
+function cbUndo(x,s){clearTimeout(CB_T[s.id]);delete CB_T[s.id];var es=ACT.load(x.slug),left=es.filter(function(e){return !(e.id===s.id&&e.s==='hold')});
+  if(left.length===es.length){toast('Already sent; it can\'t be undone now');return false}
+  ACT.save(x.slug,left);var L=cbLoad(x);if(s.prev)L[s.kind][s.ref]=s.prev;else delete L[s.kind][s.ref];cbSave(x,L);cbRefresh(x,true);toast('Undone. Nothing was sent');return true}
+/* bottom sheet: Undo (5 s) + optional detail (voice or typing), never blocks the page */
+function cbSheet(x,s){var el=$('#cbsheet');if(!el){el=document.createElement('div');el.id='cbsheet';el.setAttribute('role','status');document.body.appendChild(el)}
+  if(CB_SHEET&&CB_SHEET.hide)clearTimeout(CB_SHEET.hide);CB_SHEET=s;
+  el.innerHTML='<div class="cbrow"><span id="cbMsg">✓ '+esc(s.a)+' · '+esc(s.what)+'</span>'+(s.held?'<button type="button" class="cbu" id="cbUndo">Undo <span id="cbCd">5</span></button>':'')+'<button type="button" class="cbx" id="cbClose" aria-label="Close">✕</button></div>'+
+    '<button type="button" class="cbdet" id="cbDet">＋ Add detail (optional): voice or typing</button><div id="cbBox" class="hidden"><div class="cbmicw"><button type="button" class="mic sm" id="cbMic" aria-label="Tap and speak">🎤</button><span class="small" id="cbMicS">Tap the mic and say what happened, or type below.</span></div>'+
+    '<textarea id="cbTxt" rows="2" maxlength="400" placeholder="e.g. Loved the closet, thinking about the garage in spring. Will visit the showroom Sat."></textarea><div class="fine" style="margin:2px 0 6px">No last names or phone numbers, please: this goes to Andrew\'s activity log with the record number.</div><button type="button" class="btn" id="cbSave">Save detail</button></div>';
+  el.classList.remove('hidden');
+  var cd=5,iv=s.held?setInterval(function(){cd--;var c=$('#cbCd');if(!c||cd<=0||CB_SHEET!==s){clearInterval(iv);return}c.textContent=cd},1000):null;
+  var u=$('#cbUndo');if(u)u.onclick=function(){clearInterval(iv);if(cbUndo(x,s))cbClose()};
+  $('#cbClose').onclick=function(){cbClose()};
+  function arm(){if(s.hide)clearTimeout(s.hide);s.hide=setTimeout(function(){if(CB_SHEET===s&&$('#cbBox').classList.contains('hidden')&&!s.held)cbClose();else if(CB_SHEET===s)arm()},14000)}arm();
+  $('#cbDet').onclick=function(){$('#cbDet').classList.add('hidden');$('#cbBox').classList.remove('hidden');clearTimeout(s.hide);$('#cbTxt').focus({preventScroll:true})};
+  cbDictate($('#cbMic'),$('#cbTxt'),$('#cbMicS'));
+  $('#cbSave').onclick=function(){var t=cbMask($('#cbTxt').value);if(!t){toast('Say or type the detail first');return}
+    if(s.held){cbCommit(x,s.id);s.held=false}var e=cbEntry(x,s.kind,s.ref,s.a,t);if(!e){toast('Could not save on this device');return}cbSend(x);cbRefresh(x,false);cbClose();toast('Detail saved'+(D.meta.activity_form?' and sent to Andrew':''))}}
+function cbClose(){var el=$('#cbsheet');if(el){el.classList.add('hidden');el.innerHTML=''}if(CB_SHEET&&CB_SHEET.hide)clearTimeout(CB_SHEET.hide);CB_SHEET=null}
+/* voice to text for the detail box (same Web Speech API setup as the tracker's mic; keyboard 🎤 always works too) */
+function cbDictate(mic,txt,S){if(!ACT.speechOK()){mic.classList.add('hidden');S.textContent='Type below, or use your keyboard\'s 🎤 to dictate.';return}
+  var R=window.SpeechRecognition||window.webkitSpeechRecognition,rec=null,base='';
+  mic.onclick=function(){if(rec){try{rec.stop()}catch(e){}return}try{rec=new R()}catch(e){mic.classList.add('hidden');S.textContent='Type below, or use your keyboard\'s 🎤.';return}
+    rec.lang='en-US';rec.interimResults=true;rec.continuous=false;base=txt.value.trim();
+    rec.onstart=function(){mic.classList.add('on');S.textContent='Listening… tap again to stop'};
+    rec.onresult=function(ev){var f='';for(var i=0;i<ev.results.length;i++)f+=ev.results[i][0].transcript;txt.value=(base?base+' ':'')+f.trim()};
+    rec.onerror=function(ev){S.textContent=ev.error==='not-allowed'?'Microphone access is off for this site. Type, or use your keyboard\'s 🎤.':'Voice stopped. You can type instead.'};
+    rec.onend=function(){mic.classList.remove('on');rec=null;if(txt.value.trim())S.textContent='Got it. Tap Save detail.'};
+    try{rec.start()}catch(e){rec=null;S.textContent='Voice could not start. You can type instead.'}}}
+function cbWire(x){CB_X=x;cbPcRender(x,false);cbDealRender(x);
+  if(!cbWire.on){cbWire.on=1;
+    document.addEventListener('click',function(ev){var b=ev.target.closest&&ev.target.closest('.cbt');if(b&&CB_X){ev.preventDefault();cbTap(CB_X,b);return}
+      var h=ev.target.closest&&ev.target.closest('#nstdl .nsd.tch .top');if(h&&!ev.target.closest('input')){h.parentNode.classList.toggle('open')}});
+    window.addEventListener('pagehide',cbFlushAll);document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')cbFlushAll()})}}
 /* owner: 30,000-ft roll-up */
 function nsOwner(){var N=D.owner&&D.owner.ns;if(!N)return'';var pc=N.promo_cnt,mx=Math.max.apply(null,N.types.map(function(t){return t.usd}).concat([1])),h='';
   h+='<div class="card" style="border-left:5px solid #12263f"><b>Top 3 things to know</b><ol class="small" style="margin:6px 0 0;padding-left:20px">'+N.top3.map(function(t){return '<li style="margin:4px 0">'+esc(t)+'</li>'}).join('')+'</ol></div>';

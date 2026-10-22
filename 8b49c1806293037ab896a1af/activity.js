@@ -1,6 +1,7 @@
 /* CFNJ Designer Coach: activity tracker (voice or typing). Entries live in this browser's localStorage, keyed per designer, and each saved
    entry is also POSTed to Andrew's Google Form (config: coach.py ACTIVITY_FORM -> D.meta.activity_form). Sync status per entry: s='pending'|'sent'
-   (entries saved before sync existed have no s and are not back-filled). Pending entries retry on page load and on the browser 'online' event.
+   (entries saved before sync existed have no s and are not back-filled). s='hold' = contact-button tap inside its 5 s Undo window
+   (app.js cbTap); sync() sends it once hu has passed. Pending entries retry on page load and on the browser 'online' event.
    Deletes stay local (not propagated). No tokens or secrets here (form/entry ids are public). Parser is pure (ACT.parse) so it can be tested without a browser. */
 'use strict';
 var ACT=(function(){
@@ -63,7 +64,7 @@ function payload(F,who,e){var f=F.fields,p={};p[f.designer]=who;p[f.date]=e.d;p[
 function enc(p){return Object.keys(p).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(p[k])}).join('&')}
 function postForm(url,p){                                    /* resolves on send, rejects on network error / timeout */
   if(typeof fetch==='function'){var tm;return Promise.race([
-      fetch(url,{method:'POST',mode:'no-cors',credentials:'omit',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:enc(p)}),
+      fetch(url,{method:'POST',mode:'no-cors',credentials:'omit',keepalive:true,headers:{'Content-Type':'application/x-www-form-urlencoded'},body:enc(p)}),
       new Promise(function(_,rej){tm=setTimeout(function(){rej(new Error('timeout'))},25000)})]).then(function(r){clearTimeout(tm);return r},function(e){clearTimeout(tm);throw e})}
   return new Promise(function(res,rej){try{                   /* fallback without fetch: hidden form into a hidden iframe */
     var n='actf'+Date.now()+Math.floor(Math.random()*1e6),ifr=document.createElement('iframe'),fm=document.createElement('form');
@@ -75,7 +76,8 @@ var INFLIGHT={},FKEY='cfnj_activity_form_v1';
 /* Send every pending entry of one designer (Designer field = e.w, the name stored with the entry at save time). back(changed) when done. */
 function sync(slug,F,back){if(!F||!F.url){back&&back(false);return}
   if(typeof navigator!=='undefined'&&navigator.onLine===false){back&&back(false);return}
-  var todo=load(slug).filter(function(e){return e.s==='pending'&&e.w&&!INFLIGHT[e.id]});if(!todo.length){back&&back(false);return}
+  var all=load(slug),now=Date.now(),hu=false;all.forEach(function(e){if(e.s==='hold'&&!(e.hu>now)){e.s='pending';delete e.hu;hu=true}});if(hu)save(slug,all);  /* contact-button taps: an Undo window that ran out (or a closed page) = send */
+  var todo=all.filter(function(e){return e.s==='pending'&&e.w&&!INFLIGHT[e.id]});if(!todo.length){back&&back(false);return}
   var left=todo.length,changed=false;todo.forEach(function(e){INFLIGHT[e.id]=1;
     postForm(F.url,payload(F,e.w,e)).then(function(){var a=load(slug);a.forEach(function(z){if(z.id===e.id){z.s='sent';z.sa=Date.now()}});save(slug,a);changed=true},function(){})
     .then(function(){delete INFLIGHT[e.id];if(--left===0)back&&back(changed)})})}
