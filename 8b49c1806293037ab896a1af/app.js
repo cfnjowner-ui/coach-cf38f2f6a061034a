@@ -478,7 +478,7 @@ function pcCard(c,P){return '<div class="nsd pc" data-pref="'+esc(c.ref)+'"><div
     '<div class="why small"><b>Why this person:</b> '+esc(c.why)+(c.fit?' <span class="chip">'+esc(c.fit)+'</span>':'')+'</div>'+
     (c.text?'<div class="small nslab"><b>📱 Text (ready to send)</b></div><div class="nss nstx"><span>'+esc(c.text)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>':'')+
     (c.lowes&&P.lowes.terms_note?'<div class="fine nslw">For you only, not in the text: '+esc(P.lowes.terms_note)+'</div>':'')+
-    '<details class="nscall"><summary class="small"><b>📞 Call version</b></summary><div class="nss"><span>'+esc(c.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></details>'+cbBtns('pc',c.ref)+'</div>'}
+    '<details class="nscall"><summary class="small"><b>📞 Call version</b></summary><div class="nss"><span>'+esc(c.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></details>'+cbBtns('pc',c.ref)+'<button type="button" class="cbdnc" data-ref="'+esc(c.ref)+'">🚫 Don\'t contact</button></div>'}
 function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N.deals||[];
   h+=nsPromo(P);
   h+='<div class="grid">'+tile('In play',m0(N.usd),N.n+' open quote'+(N.n===1?'':'s')+' · every one is winnable','neu')+tile('Due today',n0(N.today_n),'next steps to do today ('+N.per_day+' a day, biggest $ first)',N.today_n?'neu':'neu')+
@@ -494,7 +494,7 @@ function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N
   var pc=N.past||[],ph='';
   ph+=nsDos();
   ph+='<div class="card"><p class="small" style="margin:0 0 8px">'+(pc.length?'<b>Past clients are your most important contacts right now.</b> Each one has a ready-to-send text (modeled on a past-client text that works on our team; put your own cell where it says [your cell]) and a short call version. These are your <span id="pcn">'+Math.min(10,pc.length)+'</span> best past clients to contact in October (from '+N.past_pool+' sold clients since Jan 2025, 60+ days after the sale), best opportunity first. No contact details here: look them up in ClosetWare by the record number.':'No past clients in the window (sold Final since Jan 2025, 60+ days ago).')+'</p>'+
-   (pc.length?'<p class="small cbhelp"><b>After you reach out, tap what you did</b> (💬 Texted · 📞 Called · 🏠 Visited · ✉️ Emailed). It is logged in your activity and sent to Andrew, that client leaves your list for '+(N.pc_quiet||60)+' days and the next best past client moves up. Changed your mind? Tap Undo within 5 seconds.</p>':'')+
+   (pc.length?'<p class="small cbhelp"><b>After you reach out, tap what you did</b> (💬 Texted · 📞 Called · 🏠 Visited · ✉️ Emailed). It is logged in your activity and sent to Andrew, that client leaves your list for '+(N.pc_quiet||60)+' days and the next best past client moves up. Changed your mind? Tap Undo within 5 seconds. Someone who must never hear from us again? Tap <b>🚫 Don\'t contact</b>: they leave every designer\'s list for good (Andrew can restore them).</p>':'')+
    '<div id="pcl"></div><p class="small hidden" id="pcend"></p>'+
    '<p class="fine">Ask every happy client for a referral; enter any lead they give you as designer-created. Installed is estimated (sold Final 60+ days ago; install lead time runs 40-60 days).</p></div>';
   out+=sec('pastc','📞 Call past clients (October)',ph);
@@ -532,6 +532,7 @@ function nsWire(x){var N=x.ns;if(!N)return;var key='cfnj_ns_done_'+x.slug,st={};
    build's pc_recent / deal touch (Activity Sheet, synced :20/:40 and hourly), merged by record number, so phone and computer agree
    after the next sync and nothing counts twice (counting is the tracker's key-based Sheet/local merge). ── */
 var CB_ACT=[['Texted','💬','texts'],['Called','📞','calls'],['Visited','🏠','appts'],['Emailed','✉️','texts']],CB_HOLD=5000,CB_T={},CB_X=null,CB_SHEET=null;
+var CB_DNC_RX=/^\s*\[pc\]\s*past client\s*#([A-Za-z0-9]{4,18})\s*-\s*do not contact\b/i;
 var CB_RX=/^\s*\[(pc|deal)\]\s*(?:past client|opp)\s*#([A-Za-z0-9]{4,18})\s*-\s*(texted|called|visited|emailed)\b/i;
 function cbBtns(kind,ref){return '<div class="cbb" role="group" aria-label="Log a contact">'+CB_ACT.map(function(a){return '<button type="button" class="cbt" data-cb="'+a[0]+'" data-kind="'+kind+'" data-ref="'+esc(ref)+'"><span aria-hidden="true">'+a[1]+'</span>'+a[0]+'</button>'}).join('')+'</div>'}
 function cbPad(n){return String(n).padStart(2,'0')}
@@ -540,22 +541,22 @@ function cbClock(t){var d=new Date(t);return d.toLocaleTimeString('en-US',{hour:
 function cbNote(kind,ref,a,d,detail){return (kind==='pc'?'[pc] Past client #':'[deal] Opp #')+ref+' - '+(detail!=null?'detail: '+detail:a)+' ('+cbHms(d)+')'}
 function cbMask(t){return String(t||'').replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[email]').replace(/\+?\d[\d\s().-]{8,}\d/g,'[phone]').replace(/\s+/g,' ').trim().slice(0,400)}
 function cbKey(x){return 'cfnj_cb_v1_'+x.slug}
-function cbLoad(x){try{var o=JSON.parse(localStorage.getItem(cbKey(x))||'{}');return{pc:o.pc||{},deal:o.deal||{}}}catch(e){return{pc:{},deal:{}}}}
+function cbLoad(x){try{var o=JSON.parse(localStorage.getItem(cbKey(x))||'{}');return{pc:o.pc||{},deal:o.deal||{},dnc:o.dnc||{}}}catch(e){return{pc:{},deal:{},dnc:{}}}}
 function cbSave(x,o){var q=cbAgo(x.ns.pc_quiet||60);Object.keys(o.pc).forEach(function(r){if(o.pc[r].d<q)delete o.pc[r]});
   Object.keys(o.deal).forEach(function(r){if(o.deal[r].d<ACT.ymd(new Date()))delete o.deal[r]});try{localStorage.setItem(cbKey(x),JSON.stringify(o))}catch(e){}}
 function cbAgo(n){var d=new Date();d.setDate(d.getDate()-n);return ACT.ymd(d)}
-/* merged contact state: {pc:{ref:{a,d,t}}, deal:{ref:{a,d,t}}} (deal = today only) */
-function cbState(x){var N=x.ns,td=ACT.ymd(new Date()),q=cbAgo(N.pc_quiet||60),st={pc:{},deal:{}};
+/* merged contact state: {pc:{ref:{a,d,t}}, deal:{ref:{a,d,t}}, dnc:{ref:1}} (deal = today only; dnc = Don't contact, permanent) */
+function cbState(x){var N=x.ns,td=ACT.ymd(new Date()),q=cbAgo(N.pc_quiet||60),st={pc:{},deal:{},dnc:{}};
   function add(kind,ref,a,d,t){if(kind==='pc'?(d<q||d>td):d!==td)return;var o=st[kind][ref];if(!o||(t||0)>(o.t||0))st[kind][ref]={a:a,d:d,t:t||0}}
-  function fromNote(n,d,t){var m=CB_RX.exec(n||'');if(m)add(m[1].toLowerCase(),m[2],m[3].charAt(0).toUpperCase()+m[3].slice(1).toLowerCase(),d,t)}
+  function fromNote(n,d,t){var z=CB_DNC_RX.exec(n||'');if(z){st.dnc[z[1]]=1;return}var m=CB_RX.exec(n||'');if(m)add(m[1].toLowerCase(),m[2],m[3].charAt(0).toUpperCase()+m[3].slice(1).toLowerCase(),d,t)}
   (N.pc_recent||[]).forEach(function(r){add('pc',r.ref,r.a,r.d,r.t)});
   if(N.asof===td)(N.deals||[]).forEach(function(p){if(p.touch)add('deal',p.ref,p.touch.a,td,p.touch.t)});
   ((x.activity&&x.activity.rows)||[]).forEach(function(r){fromNote(r.n,r.d,r.t)});
   ACT.load(x.slug).concat(actArch(x.slug)).forEach(function(e){fromNote(e.note,e.d,e.t)});
-  var L=cbLoad(x);['pc','deal'].forEach(function(k){Object.keys(L[k]).forEach(function(r){var o=L[k][r];add(k,r,o.a,o.d,o.t)})});
+  var L=cbLoad(x);['pc','deal'].forEach(function(k){Object.keys(L[k]).forEach(function(r){var o=L[k][r];add(k,r,o.a,o.d,o.t)})});Object.keys(L.dnc).forEach(function(r){st.dnc[r]=1});
   return st}
 /* past-client list: ranked (top 10 + reserve) minus everyone contacted in the quiet window, first 10 */
-function cbPast(x,st){var N=x.ns;return (N.past||[]).concat(N.past_res||[]).filter(function(c){return !st.pc[c.ref]}).slice(0,10)}
+function cbPast(x,st){var N=x.ns;return (N.past||[]).concat(N.past_res||[]).filter(function(c){return !st.pc[c.ref]&&!st.dnc[c.ref]}).slice(0,10)}
 function cbPcRender(x,anim){var L=$('#pcl');if(!L)return;var st=cbState(x),want=cbPast(x,st),have={};
   [].slice.call(L.querySelectorAll('.nsd.pc')).forEach(function(el){var r=el.dataset.pref;if(want.some(function(c){return c.ref===r}))have[r]=el;else el.remove()});
   want.forEach(function(c){var el=have[c.ref];if(!el){var t=document.createElement('div');t.innerHTML=pcCard(c,x.ns.promo);el=t.firstChild;cbWireCard(el);if(anim){el.classList.add('cbin');setTimeout(function(){el.classList.remove('cbin')},600)}}L.appendChild(el)});
@@ -602,17 +603,42 @@ function cbUndo(x,s){clearTimeout(CB_T[s.id]);delete CB_T[s.id];var es=ACT.load(
 function cbSheet(x,s){var el=$('#cbsheet');if(!el){el=document.createElement('div');el.id='cbsheet';el.setAttribute('role','status');document.body.appendChild(el)}
   if(CB_SHEET&&CB_SHEET.hide)clearTimeout(CB_SHEET.hide);CB_SHEET=s;
   el.innerHTML='<div class="cbrow"><span id="cbMsg">✓ '+esc(s.a)+' · '+esc(s.what)+'</span>'+(s.held?'<button type="button" class="cbu" id="cbUndo">Undo <span id="cbCd">5</span></button>':'')+'<button type="button" class="cbx" id="cbClose" aria-label="Close">✕</button></div>'+
-    '<button type="button" class="cbdet" id="cbDet">＋ Add detail (optional): voice or typing</button><div id="cbBox" class="hidden"><div class="cbmicw"><button type="button" class="mic sm" id="cbMic" aria-label="Tap and speak">🎤</button><span class="small" id="cbMicS">Tap the mic and say what happened, or type below.</span></div>'+
-    '<textarea id="cbTxt" rows="2" maxlength="400" placeholder="e.g. Loved the closet, thinking about the garage in spring. Will visit the showroom Sat."></textarea><div class="fine" style="margin:2px 0 6px">No last names or phone numbers, please: this goes to Andrew\'s activity log with the record number.</div><button type="button" class="btn" id="cbSave">Save detail</button></div>';
+    (s.nodet?'':'<button type="button" class="cbdet" id="cbDet">＋ Add detail (optional): voice or typing</button><div id="cbBox" class="hidden"><div class="cbmicw"><button type="button" class="mic sm" id="cbMic" aria-label="Tap and speak">🎤</button><span class="small" id="cbMicS">Tap the mic and say what happened, or type below.</span></div>'+
+    '<textarea id="cbTxt" rows="2" maxlength="400" placeholder="e.g. Loved the closet, thinking about the garage in spring. Will visit the showroom Sat."></textarea><div class="fine" style="margin:2px 0 6px">No last names or phone numbers, please: this goes to Andrew\'s activity log with the record number.</div><button type="button" class="btn" id="cbSave">Save detail</button></div>')+'';
   el.classList.remove('hidden');
   var cd=5,iv=s.held?setInterval(function(){cd--;var c=$('#cbCd');if(!c||cd<=0||CB_SHEET!==s){clearInterval(iv);return}c.textContent=cd},1000):null;
   var u=$('#cbUndo');if(u)u.onclick=function(){clearInterval(iv);if(cbUndo(x,s))cbClose()};
   $('#cbClose').onclick=function(){cbClose()};
-  function arm(){if(s.hide)clearTimeout(s.hide);s.hide=setTimeout(function(){if(CB_SHEET===s&&$('#cbBox').classList.contains('hidden')&&!s.held)cbClose();else if(CB_SHEET===s)arm()},14000)}arm();
+  function arm(){if(s.hide)clearTimeout(s.hide);s.hide=setTimeout(function(){if(CB_SHEET===s&&(!$('#cbBox')||$('#cbBox').classList.contains('hidden'))&&!s.held)cbClose();else if(CB_SHEET===s)arm()},s.nodet?7000:14000)}arm();
+  if(s.nodet)return;
   $('#cbDet').onclick=function(){$('#cbDet').classList.add('hidden');$('#cbBox').classList.remove('hidden');clearTimeout(s.hide);$('#cbTxt').focus({preventScroll:true})};
   cbDictate($('#cbMic'),$('#cbTxt'),$('#cbMicS'));
   $('#cbSave').onclick=function(){var t=cbMask($('#cbTxt').value);if(!t){toast('Say or type the detail first');return}
     if(s.held){cbCommit(x,s.id);s.held=false}var e=cbEntry(x,s.kind,s.ref,s.a,t);if(!e){toast('Could not save on this device');return}cbSend(x);cbRefresh(x,false);cbClose();toast('Detail saved'+(D.meta.activity_form?' and sent to Andrew':''))}}
+/* ── Don't contact (Andrew, Oct 22, 2026, 4:41 PM). "🚫 Don't contact" on every past-client card (designer pages + owner view):
+   confirm dialog with an optional reason (voice or typing, phone numbers / emails masked like detail rows) -> one Activity form row with
+   ALL counts 0 and the note "[pc] Past client #<ref> - Do not contact" (+ " - reason: <text>"), held CB_HOLD ms with the same Undo as the
+   contact buttons (nothing is sent inside that window). The card leaves at once and the next one comes up from the reserve. The build
+   (nextsteps.py) then removes that household (ClosetWare account) from EVERY designer's list for good, until Andrew restores it
+   (raw/dnc_restore.json). Never a contact: 0 counts, and the tracker / owner dashboard / tap counts skip it. ── */
+function cbDncAsk(x,btn){var ref=btn.dataset.ref,card=btn.closest('.nsd');cbDncClose();var el=document.createElement('div');el.id='cbdlg';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-labelledby','cbdlgT');
+  el.innerHTML='<div class="cbdlgb"><b id="cbdlgT">🚫 Don\'t contact past client #'+esc(ref)+'?</b><p class="small" style="margin:6px 0 8px">They leave your list for good, and every designer\'s list (the same household too). Andrew sees it on his page and can restore it. Nothing is sent to the client.</p>'+
+   '<div class="cbmicw"><button type="button" class="mic sm" id="cbdMic" aria-label="Tap and speak">🎤</button><span class="small" id="cbdMicS">Reason (optional): tap the mic and say it, or type below.</span></div>'+
+   '<textarea id="cbdTxt" rows="2" maxlength="400" placeholder="e.g. Asked not to be contacted again. Moved out of state."></textarea><div class="fine" style="margin:2px 0 8px">No last names or phone numbers, please: the reason goes to Andrew\'s activity log with the record number.</div>'+
+   '<div class="cbdlgbtn"><button type="button" class="btn ghost" id="cbdNo">Cancel</button><button type="button" class="btn cbdyes" id="cbdYes">🚫 Don\'t contact</button></div></div>';
+  document.body.appendChild(el);cbDictate($('#cbdMic'),$('#cbdTxt'),$('#cbdMicS'));
+  $('#cbdNo').onclick=cbDncClose;el.onclick=function(ev){if(ev.target===el)cbDncClose()};
+  $('#cbdYes').onclick=function(){var r=cbMask($('#cbdTxt').value);cbDncClose();cbDnc(x,ref,r,card)}}
+function cbDncClose(){var el=$('#cbdlg');if(el)el.remove()}
+function cbDnc(x,ref,reason,card){var now=new Date(),F=D.meta.activity_form;
+  var e={id:Date.now()+'-'+Math.random().toString(36).slice(2,7),d:ACT.ymd(now),t:+now,c:{},note:'[pc] Past client #'+ref+' - Do not contact'+(reason?' - reason: '+reason:''),cb:'pc',dnc:1};
+  if(F){e.w=actWho(x);e.s='hold';e.hu=+now+CB_HOLD}
+  var es=ACT.load(x.slug);es.push(e);if(!ACT.save(x.slug,es)){toast('Could not save on this device (storage is off or full)');return}
+  actKey(e.w||actWho(x),e).then(function(k){var a2=ACT.load(x.slug);a2.forEach(function(z){if(z.id===e.id)z.k=k});ACT.save(x.slug,a2)},function(){});
+  var L=cbLoad(x);L.dnc[ref]={d:e.d,t:e.t};cbSave(x,L);
+  if(e.s==='hold')CB_T[e.id]=setTimeout(function(){cbCommit(x,e.id);if(CB_SHEET&&CB_SHEET.id===e.id){CB_SHEET.held=false;var u=$('#cbUndo');if(u)u.remove();var m=$('#cbMsg');if(m)m.textContent=CB_SHEET.done}},CB_HOLD);
+  if(card){card.classList.add('cbout');setTimeout(function(){cbRefresh(x,true)},330)}else cbRefresh(x,true);
+  var what='Past client #'+ref;cbSheet(x,{id:e.id,kind:'dnc',ref:ref,a:'Don\'t contact',prev:null,what:what,held:e.s==='hold',nodet:true,done:'🚫 Don\'t contact · '+what+(F?' · sent to Andrew':' · saved')})}
 function cbClose(){var el=$('#cbsheet');if(el){el.classList.add('hidden');el.innerHTML=''}if(CB_SHEET&&CB_SHEET.hide)clearTimeout(CB_SHEET.hide);CB_SHEET=null}
 /* voice to text for the detail box (same Web Speech API setup as the tracker's mic; keyboard 🎤 always works too) */
 function cbDictate(mic,txt,S){if(!ACT.speechOK()){mic.classList.add('hidden');S.textContent='Type below, or use your keyboard\'s 🎤 to dictate.';return}
@@ -626,7 +652,8 @@ function cbDictate(mic,txt,S){if(!ACT.speechOK()){mic.classList.add('hidden');S.
     try{rec.start()}catch(e){rec=null;S.textContent='Voice could not start. You can type instead.'}}}
 function cbWire(x){CB_X=x;cbPcRender(x,false);cbDealRender(x);
   if(!cbWire.on){cbWire.on=1;
-    document.addEventListener('click',function(ev){var b=ev.target.closest&&ev.target.closest('.cbt');if(b&&CB_X){ev.preventDefault();cbTap(CB_X,b);return}
+    document.addEventListener('click',function(ev){var dn=ev.target.closest&&ev.target.closest('.cbdnc');if(dn&&CB_X){ev.preventDefault();cbDncAsk(CB_X,dn);return}
+      var b=ev.target.closest&&ev.target.closest('.cbt');if(b&&CB_X){ev.preventDefault();cbTap(CB_X,b);return}
       var h=ev.target.closest&&ev.target.closest('#nstdl .nsd.tch .top');if(h&&!ev.target.closest('input')){h.parentNode.classList.toggle('open')}});
     window.addEventListener('pagehide',cbFlushAll);document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')cbFlushAll()})}}
 /* owner: 30,000-ft roll-up */
@@ -639,8 +666,14 @@ function nsOwner(){var N=D.owner&&D.owner.ns;if(!N)return'';var pc=N.promo_cnt,m
   h+='<div class="card"><b>$ at risk by designer</b> <span class="small">most dollars at risk first · tap a row to open the page</span><div class="tw"><table><thead><tr><th>Designer</th><th>In play</th><th>$ at risk</th><th>Quiet 14+ d</th><th>Showroom</th><th>Lowe\'s deals / past</th><th>Past clients</th><th>Top next step</th></tr></thead><tbody>'+
    N.designers.map(function(r){return '<tr class="click" data-s="'+r.slug+'"><td>'+esc(r.name)+'</td><td>'+m0(r.usd)+' <span class="small">('+r.n+')</span></td><td class="'+(r.risk_usd>0?'neg':'neu')+'">'+m0(r.risk_usd)+'</td><td class="'+(r.nodate_n?'neg':'neu')+'">'+r.nodate_n+'</td><td>'+r.showroom+'</td><td>'+r.lowes_deals+' / '+r.lowes_past+'</td><td>'+r.past+' <span class="small">of '+r.past_pool+'</span></td><td class="small">'+(r.top?esc(r.top.label)+' ('+mk(r.top.usd)+')':'–')+'</td></tr>'}).join('')+'</tbody></table></div>'+
    '<details style="margin-top:8px"><summary class="small">Strengths and habits by designer</summary><ul class="tight small">'+N.designers.map(function(r){return '<li><b>'+esc(r.name)+'</b>: <span class="pos">'+r.strengths.map(esc).join('; ')+'</span>'+(r.habits.length?' · <span class="neg">'+r.habits.map(esc).join('; ')+'</span>':'')+'</li>'}).join('')+'</ul></details></div>';
+  h+=nsDnc(N.dnc);
   h+=nsPromo(N.promo,true);
   h+='<p class="small" style="margin:4px 2px 10px">📱 The past-client text template on every designer page is modeled on Angela\'s past-client text (Teams Design Team chat, Oct 22). The $5,000 threshold is enforced: every text says "free color upgrade on agreements over $5,000 when you visit our Fanwood showroom", with no end date and only a [your cell] placeholder (no phone numbers).</p>';
   h+='<p class="fine">$ at risk = open quote with no dated note in 14+ days AND no dated next step (note date, follow-up date, booked appointment or open task). Lowe\'s customers are identified by ClosetWare lead source type LOWES (Category "Lowes Store"); Lowe\'s 18-mo no interest if paid in full is offered only to them. Rules and sources: playbook section 15. '+N.limits.map(esc).join(' ')+'</p>';
   return sec('nsown','💼 Close this month: 30,000-ft view',h)}
+/* owner: Don't contact list (record #, who blocked it, date, reason). Owner bundle only. */
+function nsDnc(Z){var R=(Z&&Z.rows)||[];return '<div class="card nsdnc"><b>🚫 Do not contact list</b> <span class="small">· '+R.length+' past client'+(R.length===1?'':'s')+' · off every designer\'s list (whole household)</span>'+
+  (R.length?'<div class="tw"><table><thead><tr><th>Record #</th><th>Blocked by</th><th>Date</th><th>Reason</th></tr></thead><tbody>'+R.map(function(r){var w=String(r.who||'').replace(/ \(owner preview\)$/i,function(){return ' (you, owner preview)'});return '<tr><td class="ref">'+esc(r.ref)+'</td><td>'+esc(w)+'</td><td>'+esc(r.d)+'</td><td class="small">'+(r.reason?esc(r.reason):'<span class="fine">no reason given</span>')+'</td></tr>'}).join('')+'</tbody></table></div>'
+   :'<p class="small" style="margin:6px 0 0">Nobody yet. When a designer taps 🚫 Don\'t contact on a past-client card, it shows here after the next activity sync.</p>')+
+  '<p class="fine" style="margin-top:6px">Want one back on the lists? Ask Sales Manager to restore it by record number; it returns at the next refresh.'+(Z&&Z.restored?' Restored so far: '+Z.restored+'.':'')+'</p></div>'}
 function pc0(a,b){return b?Math.round(a/b*100)+'%':'–'}
