@@ -90,10 +90,11 @@ function designer(x){var s=x.snap,g=x.goal,n=x.notes,T=D.team,tm=T.mtd,M=D.meta,
   if(D.kind==='owner')h+='<a class="back" href="#people">← All designers</a>';
   if(x.test)h+='<div class="card" style="border-left:5px solid #c47f00;background:#fff8e6"><b>🧪 TEST PAGE</b><p class="small" style="margin:6px 0 0">'+esc(x.test.label||x.name)+': a copy of '+esc(x.test.mirror||'a designer')+'\'s real page for testing. Activity entries saved here are sent to the Activity log Sheet with Designer = "'+esc(x.act_who||x.name)+'" so they are easy to filter and delete. Not counted in team totals.</p></div>';
   h+='<div class="card hero"><div class="m">'+esc(M.month)+' · day '+M.day+' of '+M.dim+' · '+M.days_left+' days left</div><h2>'+esc(x.name)+'</h2><div class="m">Personal coaching page · coach, not judge: every number compares you fairly to the team for the leads you run.</div></div>';
-  h+='<div class="minis"><a href="#wins">Wins</a><a href="#activity">My activity</a><a href="#snap">Snapshot</a><a href="#goal">Goal</a><a href="#notes">Next steps</a><a href="#focus">Focus</a><a href="#week">This week</a><a href="#learn">Library</a></div>';
+  h+='<div class="minis"><a href="#wins">Wins</a><a href="#close">Close this month</a><a href="#pastc">Past clients</a><a href="#activity">My activity</a><a href="#snap">Snapshot</a><a href="#goal">Goal</a><a href="#notes">Next steps</a><a href="#focus">Focus</a><a href="#week">This week</a><a href="#learn">Library</a></div>';
   /* wins first */
   h+=sec('wins','🌟 Wins & streaks','<div class="wins">'+x.wins.map(function(w){return '<div class="win"><div class="i">'+w.icon+'</div><div><b>'+esc(w.t)+'</b><span>'+esc(w.d)+'</span></div></div>'}).join('')+'</div>');
   h+=actSection(x);
+  h+=nsSection(x);
   /* snapshot */
   var d9=s.dcl90,dclc=d9.band==='below'?'neg':(d9.band?'pos':'neu');
   h+=sec('snap','📊 This month snapshot','<div class="grid">'+
@@ -172,6 +173,7 @@ function wire(x){var key='cfnj_coach_done_'+x.slug+'_'+D.meta.today,st={};try{st
   document.querySelectorAll('.quiz button').forEach(function(b){b.onclick=function(){var i=+b.dataset.i,ok=i===x.quiz.a;document.querySelectorAll('.quiz button').forEach(function(z,j){z.classList.toggle('ok',j===x.quiz.a)});if(!ok)b.classList.add('no');$('#qa').innerHTML=(ok?'✅ Yes. ':'Not quite. ')+esc(x.quiz.why)}});
   var c=$('#cp');if(c)c.onclick=function(){copy(x.message.text)};
   actWire(x);
+  nsWire(x);
   document.querySelectorAll('.minis a').forEach(function(a){a.onclick=function(e){e.preventDefault();var t=document.getElementById(a.getAttribute('href').slice(1));if(t)window.scrollTo({top:t.getBoundingClientRect().top+window.scrollY-110,behavior:'smooth'})}})}
 /* ── owner views ── */
 /* ── team goal panel: all roster designers vs personal goal and on-pace marker ── */
@@ -206,6 +208,7 @@ function goalPanel(){var O=D.owner,M=D.meta,ts=M.typ_share,near=M.cfg.PACE_NEAR,
 function team(){var O=D.owner,T=D.team,M=D.meta,t=O.tot,h='';
   h+='<div class="card hero"><div class="m">'+esc(M.month)+' · day '+M.day+' of '+M.dim+' · owner view (all designers)</div><h2>Team coaching roll-up</h2><div class="m">Positive first, then where help pays off most. Drafts only: nothing is sent.</div></div>';
   h+='<div id="gp">'+goalPanel()+'</div>';
+  h+=nsOwner();
   h+=actDash();
   h+=actOwnerCard();
   h+='<div class="card" style="border-left:5px solid #2f6fdd"><b>📋 New: activity tracker on every designer page</b><p class="small" style="margin:6px 0 0">Each designer can log calls, texts/emails, follow-ups, appointments, quotes, showroom visits, referral asks and closes by voice (mic button) or by typing, check the counts, and see today / this week / this month against a suggested weekly target (2 touches per open quote from the playbook rhythm, their own appointment pace, one referral ask per sale). <b>Every saved entry is also sent to you automatically</b> (Google Form → '+(D.meta.activity_sheet?'<a href="'+esc(D.meta.activity_sheet)+'" target="_blank" rel="noopener noreferrer">Activity log (Google Sheet)</a>':'Activity log (Google Sheet)')+'). Entries made with no signal wait on the phone and send when it is back online. Deleting an entry on a phone does not remove it from the Sheet.</p></div>';
@@ -421,3 +424,76 @@ function goalPlanSec(x){var s=x.snap,g=x.goal,M=D.meta,T=D.team,dl=Math.max(1,M.
     '<div class="kv"><span>Team-typical by day '+M.day+' for your lead flow (fairness reference, not a goal)</span><b>'+m0(g.exp_td)+'</b></div>'+
     '<p class="fine">Sales back-load: typical months have '+pc(M.typ_share)+' sold by day '+M.day+'.</p></details>';
   return sec('goal','🎯 October goal',h)}
+/* ── Close This Month (Andrew, Oct 22, 2026): per-deal next steps, past clients to call, strengths/habits (designer page) and the owner
+   30,000-ft roll-up. Data: x.ns / D.owner.ns built by nextsteps.py. Colors: good = green/neutral, bad = red/amber, facts neutral. ── */
+var NS_RULES=[['Note says signed','Confirm the paperwork and move to Sold (Designer) today','CFNJ stage rules'],
+ ['Appointment booked within 3 weeks','Run it to a decision: agree up front on a yes, a no or a dated next visit; offer the Fanwood showroom on $5,000+ designs','Sandler up-front contract'],
+ ['Next step more than 3 weeks out','Check in now with the showroom offer (it ends Nov 7)','Rackham "advance"; real-deadline urgency'],
+ ['Planned step in the note passed within 14 days','Log what happened and book the next visit today','CFNJ three-outcome rule'],
+ ['Note mentions a spouse/partner','Joint review with both decision-makers at the showroom','Miller Heiman buying influences; Sandler one-legged calls'],
+ ['Note mentions price/budget','Show the full and a phased version; Lowe\'s 0%/18 months only for Lowe\'s leads, otherwise Enhancify (terms depend on credit)','SPIN need-payoff; good/better/best'],
+ ['Note mentions another company','Showroom side-by-side: own Fanwood factory, lifetime guarantee','Challenger teach & tailor'],
+ ['Note mentions timing/project','Agree a dated decision; the showroom offer ends Nov 7','SPIN implication; real deadlines only'],
+ ['Quote under 30 days, no dated step','Book the showroom review visit (24-72 h, day 7, day 14 rhythm)','HBR lead-response research; 24-72-7-14'],
+ ['No dated note 14+ days','Call with a reason: the showroom invite; the goal is a firm appointment, not a sale on the call','24-72-7-14 rhythm; Rackham "advance"'],
+ ['Appointment 90+ days ago, quiet','Re-open with an updated design. Aged quotes are still winnable: they got old because the follow-up stopped','Rackham "advance"']];
+var NS_F={};
+function nsWho(p){return esc(p.name||'(no first name)')+(p.li?' '+esc(p.li)+'.':'')}
+function nsPromo(P,compact){var s=P.showroom,l=P.lowes;return '<div class="card nspromo"><div class="nsp"><span class="nsi">🍂</span><div><b>'+esc(s.name)+'</b><div class="small">'+esc(s.text)+'</div></div></div>'+
+  '<div class="nsp"><span class="nsi">🏠</span><div><b>'+esc(l.name)+'</b><div class="small">'+esc(l.text)+(compact?'':' Deals and past clients that qualify carry the "Lowe\'s 0%/18" tag.')+'</div></div></div></div>'}
+function nsCard(p,T){var tod=p.due===T,dc='';
+  return '<div class="nsd" data-k="'+p.k+'" data-due="'+(tod?1:0)+'" data-sr="'+(p.showroom?1:0)+'" data-lw="'+(p.lowes?1:0)+'" data-usd="'+p.usd+'" data-i="'+p.i+'" data-ref="'+esc(p.ref)+'">'+
+  '<div class="top"><span><input type="checkbox" class="nsdone" aria-label="done"> <b>'+nsWho(p)+'</b> <span class="ref">'+esc(p.ref)+'</span></span><span class="amt">'+m0(p.usd)+'</span></div>'+
+  '<div class="nsa"><span class="chip '+dc+'">'+(tod?'Due today':'By '+esc(p.due_l))+'</span><b>'+esc(p.label)+'</b></div>'+
+  '<div class="small nsm">'+esc(p.room)+' · '+esc(p.stage)+' · '+esc(p.src)+(p.chips||[]).map(function(c){return ' <span class="chip '+(c==='showroom upgrade'?'g':'')+'">'+esc(c)+'</span>'}).join('')+'</div>'+
+  '<div class="why small"><b>Why:</b> '+p.why.map(esc).join(' · ')+'</div>'+
+  '<div class="nss"><span>'+esc(p.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></div>'}
+function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N.deals||[];
+  h+=nsPromo(P);
+  h+='<div class="grid">'+tile('In play',m0(N.usd),N.n+' open quote'+(N.n===1?'':'s')+' · every one is winnable','neu')+tile('Due today',n0(N.today_n),'next steps to do today ('+N.per_day+' a day, biggest $ first)',N.today_n?'neu':'neu')+
+   tile('Quiet 14+ days',n0(N.nodate_n),m0(N.nodate_usd)+' with no dated note in 14+ days',N.nodate_n?'neg':'pos')+tile('Showroom invites',n0(ds.filter(function(p){return p.showroom&&p.usd>=5000}).length),'quotes over $5,000 that qualify for the free color upgrade with a visit','neu')+'</div>';
+  if(!ds.length)h+='<div class="card"><p class="small" style="margin:0">No open quotes right now. Your past clients below are the fastest way to build October.</p></div>';
+  else{h+='<div class="card"><div class="nsbar"><div class="seg nsf"><button data-f="all" class="on">All '+ds.length+'</button><button data-f="due">Today</button><button data-f="sr">Showroom</button><button data-f="lw">Lowe\'s</button></div><div class="seg nso"><button data-o="pri" class="on">Priority</button><button data-o="usd">$</button></div></div>'+
+   '<p class="fine" style="margin:4px 0 8px">One next step per quote, ordered by dollars × urgency. Tap Copy for the talk track; tick the box when it is done (saved on this device). After each call, write the one-line note: date, place, time.</p><div id="nsl">'+ds.map(function(p){return nsCard(p,T)}).join('')+'</div>'+
+   (ds.length>8?'<button class="btn ghost" id="nsmore" type="button" style="width:100%">Show all '+ds.length+'</button>':'')+'</div>'}
+  h+='<details class="card"><summary><b>How each next step is picked</b> <span class="small">(rules + sources)</span></summary><ul class="tight small">'+NS_RULES.map(function(r){return '<li><b>'+esc(r[0])+'</b> → '+esc(r[1])+' <span class="fine">('+esc(r[2])+')</span></li>'}).join('')+'</ul><p class="fine">First rule that fits wins. Read from ClosetWare (stage, amount, appointment, follow-up date, dated notes) by rule, not by meaning: if the tag is wrong, trust what you know about the client. Never treat a quote as gone: a quiet quote needs a reason to call.</p></details>';
+  var out=sec('close','💼 Close this month',h);
+  /* past clients */
+  var pc=N.past||[],ph='';
+  ph+='<div class="card"><p class="small" style="margin:0 0 8px">'+(pc.length?'Your top '+pc.length+' past clients to call in October (from '+N.past_pool+' sold clients since Jan 2025, 60+ days after the sale), best opportunity first. No contact details here: look them up in ClosetWare by the record number.':'No past clients in the window (sold Final since Jan 2025, 60+ days ago).')+'</p>'+
+   pc.map(function(c){return '<div class="nsd pc"><div class="top"><span><b>'+nsWho(c)+'</b> <span class="ref">'+esc(c.ref)+'</span></span><span class="amt">'+m0(c.usd)+'</span></div>'+
+    '<div class="small nsm">'+esc(c.rooms.join(', '))+' · sold '+esc(c.sold)+(c.n>1?' · '+c.n+' projects':'')+' '+c.tags.map(function(t){return '<span class="chip '+(t.indexOf('Lowe')===0?'':'g')+'">'+esc(t)+'</span>'}).join('')+'</div>'+
+    '<div class="why small"><b>Why:</b> '+esc(c.why)+'</div><div class="nss"><span>'+esc(c.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></div>'}).join('')+
+   '<p class="fine">Ask every happy client for a referral; enter any lead they give you as designer-created. Installed is estimated (sold Final 60+ days ago; install lead time runs 40-60 days).</p></div>';
+  out+=sec('pastc','📞 Call past clients (October)',ph);
+  /* strengths / habits */
+  var C=N.coach||{},a=C.act||{},ch='<div class="grid g2">';
+  ch+='<div class="card"><b>What you do well</b>'+(C.strengths||[]).map(function(s){return '<div class="win" style="margin-top:8px"><div class="i">✅</div><div><b>'+esc(s.t)+'</b><span>'+esc(s.d)+'</span></div></div>'}).join('')+'</div>';
+  ch+='<div class="card"><b>Habits to fix</b>'+((C.habits||[]).length?C.habits.map(function(s){return '<div class="nsh"><b>'+esc(s.t)+'</b><div class="small">'+esc(s.d)+'</div></div>'}).join(''):'<p class="small">Nothing big flagged from your numbers. Keep the rhythm: a yes, a no or a firm next appointment, every time.</p>')+'</div></div>';
+  ch+='<p class="small" style="margin:0 2px">Your tracker, last 7 days: '+(a.days?(a.calls+' calls · '+a.texts+' texts/emails · '+a.followups+' follow-ups · '+a.showroom+' showroom visits · logged on '+a.days+' day'+(a.days===1?'':'s')):'nothing logged yet. Log each call above so your follow-ups count.')+'</p>';
+  out+=sec('edge','💪 Your edge and your fix',ch);
+  return out}
+function nsWire(x){var N=x.ns;if(!N)return;var key='cfnj_ns_done_'+x.slug,st={};try{st=JSON.parse(localStorage.getItem(key)||'{}')}catch(e){}
+  var L=$('#nsl'),more=$('#nsmore'),f='all',o='pri',all=false;
+  function apply(){if(!L)return;var cs=[].slice.call(L.querySelectorAll('.nsd'));cs.sort(o==='usd'?function(a,b){return b.dataset.usd-a.dataset.usd}:function(a,b){return a.dataset.i-b.dataset.i});cs.forEach(function(c){L.appendChild(c)});var k=0;
+    cs.forEach(function(c){var ok=f==='all'||(f==='due'&&c.dataset.due==='1')||(f==='sr'&&c.dataset.sr==='1')||(f==='lw'&&c.dataset.lw==='1');if(ok)k++;c.style.display=ok&&(all||f!=='all'||k<=8)?'':'none'});if(more)more.style.display=(!all&&f==='all'&&cs.length>8)?'':'none'}
+  document.querySelectorAll('.nsf button').forEach(function(b){b.onclick=function(){f=b.dataset.f;document.querySelectorAll('.nsf button').forEach(function(z){z.classList.toggle('on',z===b)});apply()}});
+  document.querySelectorAll('.nso button').forEach(function(b){b.onclick=function(){o=b.dataset.o;document.querySelectorAll('.nso button').forEach(function(z){z.classList.toggle('on',z===b)});apply()}});
+  if(more)more.onclick=function(){all=true;apply()};
+  document.querySelectorAll('.nscp').forEach(function(b){b.onclick=function(){copy(b.previousElementSibling.textContent)}});
+  document.querySelectorAll('.nsd[data-ref]').forEach(function(c){var cb=c.querySelector('.nsdone'),r=c.dataset.ref;if(!cb)return;cb.checked=!!st[r];c.classList.toggle('done',cb.checked);cb.onchange=function(){st[r]=cb.checked?D.meta.today:0;if(!cb.checked)delete st[r];c.classList.toggle('done',cb.checked);try{localStorage.setItem(key,JSON.stringify(st))}catch(e){}}});
+  apply()}
+/* owner: 30,000-ft roll-up */
+function nsOwner(){var N=D.owner&&D.owner.ns;if(!N)return'';var pc=N.promo_cnt,mx=Math.max.apply(null,N.types.map(function(t){return t.usd}).concat([1])),h='';
+  h+='<div class="card" style="border-left:5px solid #12263f"><b>Top 3 things to know</b><ol class="small" style="margin:6px 0 0;padding-left:20px">'+N.top3.map(function(t){return '<li style="margin:4px 0">'+esc(t)+'</li>'}).join('')+'</ol></div>';
+  h+='<div class="grid">'+tile('In play',m0(N.usd),N.n+' open quotes · roster designers · every one gets one next step','neu')+tile('$ at risk',m0(N.risk_usd),pc0(N.risk_usd,N.usd)+' of in play · no dated note in 14+ days and no dated next step',N.risk_usd>0?'neg':'pos')+
+   tile('Quiet 14+ days',n0(N.nodate_n),m0(N.nodate_usd)+' with no dated note in 14+ days','neg')+tile('Showroom invites',n0(pc.showroom_deals),m0(pc.showroom_usd)+' over $5,000 · plus '+pc.scope_deals+' at $2,500-$4,999 ('+m0(pc.scope_usd)+') where added scope may fit','neu')+
+   tile('Lowe\'s 0%/18 eligible',n0(pc.lowes_deals)+' deals',m0(pc.lowes_usd)+' · plus '+pc.lowes_past+' past clients on the October call lists','neu')+tile('Past clients to call',n0(pc.past),'top 10 per designer from '+pc.past_pool+' sold clients (since Jan 2025, 60+ days after sale)','neu')+'</div>';
+  h+='<div class="card"><b>$ by recommended next step</b><div style="margin-top:8px">'+N.types.map(function(t){return '<div class="nst"><div class="nstl"><span>'+esc(t.label)+'</span><b>'+m0(t.usd)+' <span class="small">('+t.n+')</span></b></div><div class="tb"><i style="width:'+(t.usd/mx*100).toFixed(1)+'%"></i></div></div>'}).join('')+'</div></div>';
+  h+='<div class="card"><b>$ at risk by designer</b> <span class="small">most dollars at risk first · tap a row to open the page</span><div class="tw"><table><thead><tr><th>Designer</th><th>In play</th><th>$ at risk</th><th>Quiet 14+ d</th><th>Showroom</th><th>Lowe\'s deals / past</th><th>Past clients</th><th>Top next step</th></tr></thead><tbody>'+
+   N.designers.map(function(r){return '<tr class="click" data-s="'+r.slug+'"><td>'+esc(r.name)+'</td><td>'+m0(r.usd)+' <span class="small">('+r.n+')</span></td><td class="'+(r.risk_usd>0?'neg':'neu')+'">'+m0(r.risk_usd)+'</td><td class="'+(r.nodate_n?'neg':'neu')+'">'+r.nodate_n+'</td><td>'+r.showroom+'</td><td>'+r.lowes_deals+' / '+r.lowes_past+'</td><td>'+r.past+' <span class="small">of '+r.past_pool+'</span></td><td class="small">'+(r.top?esc(r.top.label)+' ('+mk(r.top.usd)+')':'–')+'</td></tr>'}).join('')+'</tbody></table></div>'+
+   '<details style="margin-top:8px"><summary class="small">Strengths and habits by designer</summary><ul class="tight small">'+N.designers.map(function(r){return '<li><b>'+esc(r.name)+'</b>: <span class="pos">'+r.strengths.map(esc).join('; ')+'</span>'+(r.habits.length?' · <span class="neg">'+r.habits.map(esc).join('; ')+'</span>':'')+'</li>'}).join('')+'</ul></details></div>';
+  h+=nsPromo(N.promo,true);
+  h+='<p class="fine">$ at risk = open quote with no dated note in 14+ days AND no dated next step (note date, follow-up date, booked appointment or open task). Lowe\'s customers are identified by ClosetWare lead source type LOWES (Category "Lowes Store"); Lowe\'s 0%/18 is offered only to them. Rules and sources: playbook section 15. '+N.limits.map(esc).join(' ')+'</p>';
+  return sec('nsown','💼 Close this month: 30,000-ft view',h)}
+function pc0(a,b){return b?Math.round(a/b*100)+'%':'–'}
