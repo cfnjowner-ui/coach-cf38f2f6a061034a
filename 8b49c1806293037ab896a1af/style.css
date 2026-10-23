@@ -208,3 +208,5 @@ details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:
 .cbdlgbtn{display:flex;gap:8px;justify-content:flex-end}.cbdlgbtn .btn{min-height:44px}
 .btn.cbdyes{background:#9b2c2c;border-color:#9b2c2c;color:#fff}
 @media(min-width:700px){#cbdlg{align-items:center}}
+.chip.warn{background:#fff4d6;border-color:#e8c26a;color:#7a5a00}
+.warnbox{background:#fff4d6;border:1px solid #e8c26a;border-radius:10px;padding:8px 10px}

@@ -59,14 +59,14 @@ function parse(text){var counts={},hits=[];CATS.forEach(function(c){counts[c.k]=
     for(var i=0;i<w.length;i++){var n=numOf(w[i],w[i+1],w[i+2]);if(n==null||n<=0||n>500)continue;
       if(w[i]==='a'&&w[i+1]==='couple'){continue}
       if(NUM[w[i]]===2&&(w[i]==='couple'||w[i]==='pair')&&w[i+1]==='of')i++;
-      /* forward: the noun right after the number (up to 3 words of modifiers, stops at a preposition or the next number) */
-      var win=[],cat=null;for(var j=i+1;j<w.length&&j<=i+4;j++){if(STOPW[w[j]]||numOf(w[j],w[j+1],w[j+2])!=null&&/^\d+$|^(one|two|three|four|five|six|seven|eight|nine|ten)$/.test(w[j]))break;win.push(w[j])}
+      /* forward: the noun right after the number (up to 2 words of modifiers, stops at a preposition or the next number) */
+      var win=[],cat=null;for(var j=i+1;j<w.length&&j<=i+3;j++){if(STOPW[w[j]]||numOf(w[j],w[j+1],w[j+2])!=null&&/^\d+$|^(one|two|three|four|five|six|seven|eight|nine|ten)$/.test(w[j]))break;win.push(w[j])}
       if(win.indexOf('followup')>=0)cat='followups';else if(win.indexOf('showroom')>=0||win.indexOf('showrooms')>=0)cat='showroom';
       else{for(var a=0;a<win.length;a++){var c=catOf(win[a]);if(c){var c2=a+1<win.length?catOf(win[a+1]):null;cat=(c2&&!VERB[win[a+1]])?c2:c;break}}}
       /* backward: an activity verb/noun right before the number ("texted 20", "text to 3") */
       if(!cat){for(var b=i-1;b>=0&&b>=i-2;b--){if(VERB[w[b]]){cat=VERB[w[b]];break}var cb=catOf(w[b]);if(cb){cat=cb;break}if(!STOPW[w[b]])break}}
       if(cat){counts[cat]+=n;got=true;hits.push({n:n,cat:cat,phrase:w.slice(Math.max(0,i-2),i+1+Math.min(win.length,4)).join(' ')})}}
-    if(!got){for(var v=0;v<w.length;v++){if(VERB[w[v]]){counts[VERB[w[v]]]+=1;hits.push({n:1,cat:VERB[w[v]],phrase:w.slice(v,v+4).join(' '),implied:true});break}}}});
+    if(!got){for(var v=0;v<w.length;v++){var iv=VERB[w[v]]||(v>0&&/^(sent|send|sending|left|made|did|had)$/.test(w[v-1])&&catOf(w[v]));if(iv){counts[iv]+=1;hits.push({n:1,cat:iv,phrase:w.slice(Math.max(0,v-1),v+4).join(' '),implied:true});break}}}});
   var scr=!!sc.script.replace(/\s+/g,'');
   if(scr&&/\breferr/i.test(sc.script)&&!counts.leads){counts.leads=1;hits.push({n:1,cat:'leads',phrase:'referral ask in the pasted message',implied:true})}
   return{counts:counts,hits:hits,big:CATS.filter(function(c){return counts[c.k]>CAP}).map(function(c){return c.k}),script:scr}}
