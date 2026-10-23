@@ -6,12 +6,12 @@
 'use strict';
 var ACT=(function(){
 var CATS=[{k:'calls',l:'Calls',i:'📞'},{k:'texts',l:'Texts / emails',i:'💬'},{k:'followups',l:'Follow-ups',i:'🔁'},{k:'appts',l:'Appointments held',i:'🏠'},
-  {k:'quotes',l:'Quotes / proposals sent',i:'📄'},{k:'showroom',l:'Showroom visits',i:'🏬'},{k:'leads',l:'Referrals asked / own leads',i:'🌱'},{k:'closes',l:'Closes',i:'✅'}];
+  {k:'quotes',l:'Quotes / contracts sent',i:'📄'},{k:'showroom',l:'Showroom visits',i:'🏬'},{k:'leads',l:'Referrals asked / own leads',i:'🌱'},{k:'closes',l:'Closes (signed)',i:'✅'}];
 var NUM={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,couple:2,pair:2,dozen:12,once:1,twice:2};
 /* word -> category (nouns and verbs). Order of checks in catOf() handles compounds. */
-var RX={showroom:/^showrooms?$/,followups:/^(followups?|followedup|checkins?|checkedin)$/,quotes:/^(quotes?|quoted|proposals?|estimates?|bids?)$/,
+var RX={showroom:/^showrooms?$/,followups:/^(followups?|followedup|checkins?|checkedin)$/,quotes:/^(quotes?|quoted|proposals?|estimates?|bids?|contracts?|agreements?|docusigns?)$/,
   appts:/^(appointments?|appts?|inhomes?|consults?|consultations?|measures?|meetings?|visits?|presentations?|met)$/,leads:/^(referrals?|leads?|dcls?|referred)$/,
-  closes:/^(closes?|closed|sales?|sold|signed|deals?|deposits?|contracts?)$/,texts:/^(texts?|texted|texting|emails?|emailed|emailing|messages?|messaged|sms)$/,
+  closes:/^(closes?|closed|sales?|sold|signed|deals?|deposits?)$/,texts:/^(texts?|texted|texting|emails?|emailed|emailing|messages?|messaged|sms)$/,
   calls:/^(calls?|called|calling|phoned|dials?|dialed|voicemails?|vms?)$/};
 var VERB={called:'calls',calling:'calls',phoned:'calls',dialed:'calls',texted:'texts',emailed:'texts',messaged:'texts',followedup:'followups',checkedin:'followups',
   quoted:'quotes',sold:'closes',closed:'closes',signed:'closes',met:'appts',referred:'leads'};
@@ -20,7 +20,8 @@ function catOf(w){if(RX.showroom.test(w))return'showroom';for(var k in RX){if(RX
    "3 calls"). Removed before reading: dates (10/22, 10-22, 10/22/2026, Oct 22), times (6pm, 2:30, 12noon, at six, 10 o'clock), money ($50,
    $11,303, 11K), percentages, phone numbers, durations (1 hour, 45 minutes), ordinals (3rd), record #s, decimals, and any pasted client
    message (from "Hi <name>!", "It's <name> from Closet Factory", "This month we're offering", gift-card / reply-here lines on). A pasted
-   message that asks for referrals counts as ONE referral ask. Per entry, a category above CAP is flagged (big) and the page asks to confirm. */
+   message that asks for referrals counts as ONE referral ask. Oct 22, 2026 9:17 PM (Andrew): a contract / agreement / proposal / DocuSign SENT
+   is a QUOTE; only signed / sold / closed / deposit is a close ("Closes (signed)"). Per entry, a category above CAP is flagged (big) and the page asks to confirm. */
 var CAP=50;
 var MON='jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?';
 var NUMW='one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve';
@@ -47,7 +48,7 @@ function mask(t){return String(t||'')
 function norm(t){return String(t||'').toLowerCase().replace(/[’']/g,'').replace(/follow[\s-]*ups?\b/g,'followup').replace(/followed[\s-]+up/g,'followedup')
   .replace(/check(ed)?[\s-]+in(s)?\b/g,function(m,a,b){return a?'checkedin':'checkin'+(b||'')}).replace(/in[\s-]+home/g,'inhome').replace(/designer[\s-]*created(\s+leads?)?/g,'dcl').replace(/self[\s-]*gen(erated)?(\s+leads?)?/g,'dcl')
   .replace(/\bno[\s-]+sales?\b/g,'nosale').replace(/\bservice[\s-]+calls?\b/g,'servicecall').replace(/\b(sales|team|corporate|designer|bni|networking|staff|company|zoom)\s+meetings?\b/g,'groupmeeting')
-  .replace(/\bsales\s+calls?\b/g,'calls').replace(/\bphone\s+calls?\b/g,'calls')}
+  .replace(/\bdocu[\s-]+sign/g,'docusign').replace(/\b(not|never)\s+(yet\s+)?signed\b|\bunsigned\b/g,'unsigned').replace(/\bsales\s+calls?\b/g,'calls').replace(/\bphone\s+calls?\b/g,'calls')}
 function numOf(w,next,next2){if(/^\d+$/.test(w))return parseInt(w,10);if(NUM[w]!=null)return NUM[w];
   if((w==='a'||w==='an'||w==='another')&&(catOf(next||'')||catOf(next2||'')))return 1;return null}
 var STOPW={about:1,regarding:1,re:1,for:1,to:1,with:1,from:1,on:1,because:1,since:1,who:1,that:1,which:1,after:1,before:1,of:1,at:1,in:1};
@@ -61,11 +62,12 @@ function parse(text){var counts={},hits=[];CATS.forEach(function(c){counts[c.k]=
       if(NUM[w[i]]===2&&(w[i]==='couple'||w[i]==='pair')&&w[i+1]==='of')i++;
       /* forward: the noun right after the number (up to 2 words of modifiers, stops at a preposition or the next number) */
       var win=[],cat=null;for(var j=i+1;j<w.length&&j<=i+3;j++){if(STOPW[w[j]]||numOf(w[j],w[j+1],w[j+2])!=null&&/^\d+$|^(one|two|three|four|five|six|seven|eight|nine|ten)$/.test(w[j]))break;win.push(w[j])}
-      if(win.indexOf('followup')>=0)cat='followups';else if(win.indexOf('showroom')>=0||win.indexOf('showrooms')>=0)cat='showroom';
+      if(win.indexOf('followup')>=0)cat='followups';else if(win.some(function(z){return /^(signed|sold|closed|deposits?)$/.test(z)}))cat='closes';else if(win.indexOf('showroom')>=0||win.indexOf('showrooms')>=0)cat='showroom';
       else{for(var a=0;a<win.length;a++){var c=catOf(win[a]);if(c){var c2=a+1<win.length?catOf(win[a+1]):null;cat=(c2&&!VERB[win[a+1]])?c2:c;break}}}
       /* backward: an activity verb/noun right before the number ("texted 20", "text to 3") */
       if(!cat){for(var b=i-1;b>=0&&b>=i-2;b--){if(VERB[w[b]]){cat=VERB[w[b]];break}var cb=catOf(w[b]);if(cb){cat=cb;break}if(!STOPW[w[b]])break}}
       if(cat){counts[cat]+=n;got=true;hits.push({n:n,cat:cat,phrase:w.slice(Math.max(0,i-2),i+1+Math.min(win.length,4)).join(' ')})}}
+    if(!got){for(var q=1;q<w.length;q++){if(catOf(w[q])==='quotes'&&!/^quot/.test(w[q])&&w.slice(Math.max(0,q-3),q).some(function(z){return /^(sent|send|sending|emailed|emailing|texted|docusigned)$/.test(z)})){counts.quotes+=1;got=true;hits.push({n:1,cat:'quotes',phrase:w.slice(Math.max(0,q-3),q+1).join(' '),implied:true});break}}}
     if(!got){for(var v=0;v<w.length;v++){var iv=VERB[w[v]]||(v>0&&/^(sent|send|sending|left|made|did|had)$/.test(w[v-1])&&catOf(w[v]));if(iv){counts[iv]+=1;hits.push({n:1,cat:iv,phrase:w.slice(Math.max(0,v-1),v+4).join(' '),implied:true});break}}}});
   var scr=!!sc.script.replace(/\s+/g,'');
   if(scr&&/\breferr/i.test(sc.script)&&!counts.leads){counts.leads=1;hits.push({n:1,cat:'leads',phrase:'referral ask in the pasted message',implied:true})}
