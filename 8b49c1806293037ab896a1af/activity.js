@@ -12,29 +12,64 @@ var NUM={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,e
 var RX={showroom:/^showrooms?$/,followups:/^(followups?|followedup|checkins?|checkedin)$/,quotes:/^(quotes?|quoted|proposals?|estimates?|bids?)$/,
   appts:/^(appointments?|appts?|inhomes?|consults?|consultations?|measures?|meetings?|visits?|presentations?|met)$/,leads:/^(referrals?|leads?|dcls?|referred)$/,
   closes:/^(closes?|closed|sales?|sold|signed|deals?|deposits?|contracts?)$/,texts:/^(texts?|texted|texting|emails?|emailed|emailing|messages?|messaged|sms)$/,
-  calls:/^(calls?|called|calling|phoned|dials?|dialed|voicemails?)$/};
+  calls:/^(calls?|called|calling|phoned|dials?|dialed|voicemails?|vms?)$/};
 var VERB={called:'calls',calling:'calls',phoned:'calls',dialed:'calls',texted:'texts',emailed:'texts',messaged:'texts',followedup:'followups',checkedin:'followups',
   quoted:'quotes',sold:'closes',closed:'closes',signed:'closes',met:'appts',referred:'leads'};
 function catOf(w){if(RX.showroom.test(w))return'showroom';for(var k in RX){if(RX[k].test(w))return k}return null}
+/* ── Parser rules (Oct 22, 2026 fix, Andrew): a number counts ONLY when it directly qualifies an activity noun or verb ("texted 20 clients",
+   "3 calls"). Removed before reading: dates (10/22, 10-22, 10/22/2026, Oct 22), times (6pm, 2:30, 12noon, at six, 10 o'clock), money ($50,
+   $11,303, 11K), percentages, phone numbers, durations (1 hour, 45 minutes), ordinals (3rd), record #s, decimals, and any pasted client
+   message (from "Hi <name>!", "It's <name> from Closet Factory", "This month we're offering", gift-card / reply-here lines on). A pasted
+   message that asks for referrals counts as ONE referral ask. Per entry, a category above CAP is flagged (big) and the page asks to confirm. */
+var CAP=50;
+var MON='jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?';
+var NUMW='one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve';
+var SCRIPT_RX=[/(^|[\s.!?\/])(hi|hello|hey|dear|good (?:morning|afternoon|evening))\b[^.!?,:\n\/]{0,30}[!,:]/i,/\bit[’']?s [a-z]+ (?:here )?from closet factory\b/i,
+  /\bthis month we[’']?re offering\b/i,/\bif you know (?:a|anyone|someone)\b/i,/\bgift ?cards?\b/i,/\breply here\b/i,/\bthank you again for\b/i,/\b(?:text|call)\s*\/\s*(?:text|call) me\b/i];
+function scriptCut(t){var s=String(t||''),at=-1;SCRIPT_RX.forEach(function(rx){var m=rx.exec(s);if(m){var i=m.index+(m[1]?m[1].length:0);if(at<0||i<at)at=i}});
+  return at<0?{own:s,script:''}:{own:s.slice(0,at),script:s.slice(at)}}
+var STOPN=new RegExp('(?!\\s*(?:calls?|texts?|emails?|clients?|people|customers|leads?|referrals?|appointments?|appts?|quotes?|proposals?|followups?|visits?)\\b)');
+function mask(t){return String(t||'')
+  .replace(/(\+?1[\s.-]?)?\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}\b/g,' ')                                  /* phone numbers */
+  .replace(/\$\s?\d[\d,]*(\.\d+)?\s*(k|m|mil|million|thousand)?\b/g,' ')                                 /* $50, $11,303, $40K */
+  .replace(/\b\d[\d,]*(\.\d+)?\s*(k|grand|thousand|million|dollars?|bucks)\b/g,' ')                      /* 11K, 11.3k, 500 dollars */
+  .replace(/\b\d+(\.\d+)?\s*(%|percent\b|pct\b)/g,' ')                                                   /* 7.5%, 10 percent */
+  .replace(/\b\d{4}-\d{1,2}-\d{1,2}\b/g,' ').replace(/\b\d{1,2}[\/-]\d{1,2}([\/-]\d{2,4})?\b/g,' ')        /* 2026-10-22, 10/22, 10-22, 10/22/2026 */
+  .replace(new RegExp('\\b('+MON+')\\.?\\s+\\d{1,2}(st|nd|rd|th)?\\b','g'),' ')                         /* Oct 22, November 4 */
+  .replace(/\b\d{1,2}:\d{2}(\s*[ap]\.?m\b\.?)?[a-z]?/g,' ')                                              /* 2:30, 11:30z, 1:45 */
+  .replace(/\b\d{1,4}\s*([ap]\.?m\b\.?|noon|midnight)/g,' ')                                             /* 6pm, 230pm, 10 am, 12noon */
+  .replace(new RegExp('\\b(\\d{1,2}|'+NUMW+')\\s*o\\s?clock\\b','g'),' ')                                /* 10 oclock */
+  .replace(new RegExp('(\\b(?:at|by|until|till?|around)\\s+|@\\s*)(\\d{1,2}|'+NUMW+')\\b'+STOPN.source,'g'),' ')   /* at 6, at six, @7 */
+  .replace(/\b\d+(\.\d+)?\s*(hours?|hrs?|minutes?|mins?|seconds?|secs?|days?|weeks?|wks?|months?|years?|yrs?|feet|ft|inches)\b/g,' ')
+  .replace(/\b\d+(st|nd|rd|th)\b/g,' ')                                                                   /* 3rd, 22nd */
+  .replace(/#\s?[a-z0-9]+/g,' ')                                                                          /* record #s */
+  .replace(/\b\d+\.\d+\b/g,' ')}                                                                          /* other decimals */
 function norm(t){return String(t||'').toLowerCase().replace(/[’']/g,'').replace(/follow[\s-]*ups?\b/g,'followup').replace(/followed[\s-]+up/g,'followedup')
   .replace(/check(ed)?[\s-]+in(s)?\b/g,function(m,a,b){return a?'checkedin':'checkin'+(b||'')}).replace(/in[\s-]+home/g,'inhome').replace(/designer[\s-]*created(\s+leads?)?/g,'dcl').replace(/self[\s-]*gen(erated)?(\s+leads?)?/g,'dcl')
+  .replace(/\bno[\s-]+sales?\b/g,'nosale').replace(/\bservice[\s-]+calls?\b/g,'servicecall').replace(/\b(sales|team|corporate|designer|bni|networking|staff|company|zoom)\s+meetings?\b/g,'groupmeeting')
   .replace(/\bsales\s+calls?\b/g,'calls').replace(/\bphone\s+calls?\b/g,'calls')}
 function numOf(w,next,next2){if(/^\d+$/.test(w))return parseInt(w,10);if(NUM[w]!=null)return NUM[w];
   if((w==='a'||w==='an'||w==='another')&&(catOf(next||'')||catOf(next2||'')))return 1;return null}
-/* Parse free text ("called 5 clients, sent 3 follow-up texts, 1 showroom visit") into counts. Returns {counts, hits:[{n,cat,phrase}]}. */
+var STOPW={about:1,regarding:1,re:1,for:1,to:1,with:1,from:1,on:1,because:1,since:1,who:1,that:1,which:1,after:1,before:1,of:1,at:1,in:1};
+/* Parse free text ("called 5 clients, sent 3 follow-up texts, 1 showroom visit") into counts.
+   Returns {counts, hits:[{n,cat,phrase}], big:[category keys above CAP], script:true if a pasted client message was skipped}. */
 function parse(text){var counts={},hits=[];CATS.forEach(function(c){counts[c.k]=0});
-  var clauses=norm(text).split(/[,;.\n!?]+|\band\b|\bplus\b|\balso\b|\bthen\b/);
+  var sc=scriptCut(text),clauses=mask(norm(sc.own)).split(/[,;.\n!?]+|\band\b|\bplus\b|\balso\b|\bthen\b/);
   clauses.forEach(function(cl){var w=cl.split(/[^a-z0-9]+/).filter(Boolean),got=false;
     for(var i=0;i<w.length;i++){var n=numOf(w[i],w[i+1],w[i+2]);if(n==null||n<=0||n>500)continue;
       if(w[i]==='a'&&w[i+1]==='couple'){continue}
       if(NUM[w[i]]===2&&(w[i]==='couple'||w[i]==='pair')&&w[i+1]==='of')i++;
-      var win=[],cat=null;for(var j=i+1;j<w.length&&j<=i+6;j++){if(numOf(w[j],w[j+1],w[j+2])!=null&&/^\d+$|^(one|two|three|four|five|six|seven|eight|nine|ten)$/.test(w[j]))break;win.push(w[j])}
+      /* forward: the noun right after the number (up to 3 words of modifiers, stops at a preposition or the next number) */
+      var win=[],cat=null;for(var j=i+1;j<w.length&&j<=i+4;j++){if(STOPW[w[j]]||numOf(w[j],w[j+1],w[j+2])!=null&&/^\d+$|^(one|two|three|four|five|six|seven|eight|nine|ten)$/.test(w[j]))break;win.push(w[j])}
       if(win.indexOf('followup')>=0)cat='followups';else if(win.indexOf('showroom')>=0||win.indexOf('showrooms')>=0)cat='showroom';
       else{for(var a=0;a<win.length;a++){var c=catOf(win[a]);if(c){var c2=a+1<win.length?catOf(win[a+1]):null;cat=(c2&&!VERB[win[a+1]])?c2:c;break}}}
-      if(!cat){for(var b=i-1;b>=0&&b>=i-3;b--){if(VERB[w[b]]){cat=VERB[w[b]];break}var cb=catOf(w[b]);if(cb){cat=cb;break}}}
+      /* backward: an activity verb/noun right before the number ("texted 20", "text to 3") */
+      if(!cat){for(var b=i-1;b>=0&&b>=i-2;b--){if(VERB[w[b]]){cat=VERB[w[b]];break}var cb=catOf(w[b]);if(cb){cat=cb;break}if(!STOPW[w[b]])break}}
       if(cat){counts[cat]+=n;got=true;hits.push({n:n,cat:cat,phrase:w.slice(Math.max(0,i-2),i+1+Math.min(win.length,4)).join(' ')})}}
     if(!got){for(var v=0;v<w.length;v++){if(VERB[w[v]]){counts[VERB[w[v]]]+=1;hits.push({n:1,cat:VERB[w[v]],phrase:w.slice(v,v+4).join(' '),implied:true});break}}}});
-  return{counts:counts,hits:hits}}
+  var scr=!!sc.script.replace(/\s+/g,'');
+  if(scr&&/\breferr/i.test(sc.script)&&!counts.leads){counts.leads=1;hits.push({n:1,cat:'leads',phrase:'referral ask in the pasted message',implied:true})}
+  return{counts:counts,hits:hits,big:CATS.filter(function(c){return counts[c.k]>CAP}).map(function(c){return c.k}),script:scr}}
 /* ── dates (local) ── */
 function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function dOf(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
@@ -89,7 +124,7 @@ function syncAll(F,back){F=F||getForm();if(!F)return;var slugs=[];try{for(var i=
   slugs.forEach(function(sl){sync(sl,F,function(ch){if(ch&&back)back(sl)})})}
 function pending(es){return es.filter(function(e){return e.s==='pending'}).length}
 function speechOK(){return typeof window!=='undefined'&&!!(window.SpeechRecognition||window.webkitSpeechRecognition)}
-return{DNC_RX:DNC_RX,CATS:CATS,countsStr:countsStr,payload:payload,sync:sync,syncAll:syncAll,setForm:setForm,getForm:getForm,pending:pending,parse:parse,stats:stats,summary:summary,touches:touches,load:load,save:save,ymd:ymd,speechOK:speechOK}})();
+return{CAP:CAP,mask:mask,scriptCut:scriptCut,DNC_RX:DNC_RX,CATS:CATS,countsStr:countsStr,payload:payload,sync:sync,syncAll:syncAll,setForm:setForm,getForm:getForm,pending:pending,parse:parse,stats:stats,summary:summary,touches:touches,load:load,save:save,ymd:ymd,speechOK:speechOK}})();
 if(typeof module!=='undefined')module.exports=ACT;
 /* retry pending entries on page load and whenever the browser comes back online (app.js re-renders via ACT_ONSYNC) */
 if(typeof window!=='undefined'&&window.addEventListener){var actRetry=function(){ACT.syncAll(null,function(sl){if(typeof window.ACT_ONSYNC==='function')window.ACT_ONSYNC(sl)})};
