@@ -141,7 +141,7 @@ function designer(x){var s=x.snap,g=x.goal,n=x.notes,T=D.team,tm=T.mtd,M=D.meta,
     (n.overdue_n?'<p class="small">'+n.overdue_n+' open opp'+(n.overdue_n==1?' has':'s have')+' a next appointment date that has passed: log what happened and book the next one.</p>':'')+
     (n.dorm_n?'<p class="small">Also '+n.dorm_n+' older opps ('+m0(n.dorm_usd)+', appointment 90+ days ago): get a yes, a no, or a firm appointment, so the pipeline stays honest.</p>':'')+'</div>';
   nh+='<div class="card"><b>Opps to fix</b> <span class="small">sorted by expected value (amount × close odds for its age)</span><div style="margin-top:8px">'+
-    (x.deals.length?x.deals.map(function(d){return '<div class="deal"><div class="top"><span><b>'+esc(d.name||'(no first name)')+'</b> · <span class="small">'+esc(d.stage)+' · '+esc(d.src)+'</span></span><span class="amt">'+m0(d.usd)+'</span></div>'+
+    (x.deals.length?x.deals.map(function(d){return '<div class="deal"><div class="top"><span><b>'+esc(d.name||'(no first name)')+'</b> · <span class="small">'+esc(d.stage)+' · '+esc(d.src)+'</span></span><span class="amt">'+m0(d.usd)+'</span></div>'+ctLine(d)+
       '<div class="why"><span class="chip '+(d.upd>14?'r':'')+'">'+d.upd+'d since update</span><span class="chip">appt '+d.age+'d ago</span><span class="chip">score '+d.score+'</span>'+(d.next?'<span class="chip g">next '+esc(d.next)+'</span>':'')+'</div><div class="why small">Fix: '+d.miss.map(esc).join(' · ')+'</div></div>'}).join(''):'<p>All open opps have a dated future appointment, the right stage and a fresh note. 👏</p>')+'</div></div>';
   nh+='<div class="card"><b>The rule</b><p class="small" style="margin:6px 0">Never leave an appointment without one of three outcomes: a <b>YES</b> (signed), a <b>NO</b>, or a <b>FIRM FOLLOW-UP APPOINTMENT</b>. Only if the client refuses all three, book a firm <b>phone</b> appointment at a specific time. Work your skills until that is almost never needed.</p><b>The one-line note</b><div class="tmpl" style="margin-top:8px">'+esc(M.note_template)+'</div><p class="fine">'+esc('<Date of note> Follow scheduled <date of next appointment> in <showroom/home/phone/wherever> at <time>.')+'</p><ul class="tight small">'+M.note_checks.map(function(c){return '<li>✔︎ '+esc(c[1])+'</li>'}).join('')+'</ul></div>';
   nh+='<div class="card"><b>Where it goes (stages)</b><ul class="tight small">'+M.stage_guide.map(function(g){return '<li><b>'+esc(g.when)+'</b> → '+esc(g.stage)+'. '+esc(g.note)+'</li>'}).join('')+'</ul></div>';
@@ -150,7 +150,7 @@ function designer(x){var s=x.snap,g=x.goal,n=x.notes,T=D.team,tm=T.mtd,M=D.meta,
   var L=D.lib,fh='';
   if(!x.focus.length)fh='<div class="card"><b>No data-driven gaps flagged right now.</b> Keep your rhythm: a yes, a no, or a firm follow-up appointment every time, with the one-line note. Pick any skill in the library to sharpen.</div>';
   x.focus.forEach(function(f,i){var S=L.skills[f.skill];fh+='<div class="card focus"><div class="small">Focus '+(i+1)+' · '+S.icon+' '+esc(S.name)+'</div><h3>'+esc(f.title)+'</h3><div class="ev">'+esc(f.evidence)+'</div>'+
-    (f.deals&&f.deals.length?'<div style="margin-top:6px">'+f.deals.map(function(d){return '<span class="chip a">'+esc(d.name)+' '+m0(d.usd)+'</span>'}).join('')+'</div>':'')+
+    (f.deals&&f.deals.length?'<div style="margin-top:6px">'+f.deals.map(function(d){return '<div class="fdl"><span class="chip a">'+esc(d.name)+' '+m0(d.usd)+'</span>'+ctLine(d,1)+'</div>'}).join('')+'</div>':'')+
     '<div style="margin-top:8px"><b class="small">What good looks like</b><ul class="tight">'+S.good.map(function(g){return '<li>'+esc(g)+'</li>'}).join('')+'</ul></div>'+
     '<div style="margin-top:8px"><b class="small">Watch &amp; learn: short videos on exactly this</b>'+resList(f.skill,f.key)+'</div></div>'});
   h+=sec('focus','🧭 Your focus areas',fh+'<p class="fine">Detected from your ClosetWare data with simple rules (see How it works); ranked by the dollars involved. Up to 3, never a list of faults.</p>');
@@ -160,7 +160,7 @@ function designer(x){var s=x.snap,g=x.goal,n=x.notes,T=D.team,tm=T.mtd,M=D.meta,
   wh+='<div class="card quiz"><b>3-minute check: '+esc(L.skills[q.skill].name)+'</b><p>'+esc(q.q)+'</p>'+q.opts.map(function(o,i){return '<button data-i="'+i+'">'+esc(o)+'</button>'}).join('')+'<div id="qa" class="small"></div><p class="small" style="margin-top:10px"><b>Reflect:</b> '+esc(q.reflect)+'</p></div>';
   h+=sec('week','✅ This week',wh);
   h+=sec('learn','🎬 Watch this week',(x.videos&&x.videos.length?'<div class="card"><p class="small" style="margin:0 0 8px">One short video for each of your focus areas, picked from your own numbers. Each one is about exactly that skill.</p><div class="vids">'+x.videos.map(function(v){return vidCard(v,v.reason,v.focus_title)}).join('')+'</div></div>':'')+'<details><summary>📚 More videos and articles by skill</summary>'+librarySkills()+'</details>');
-  h+='<p class="fine">ClosetWare data, read-only, NJ only. Sold = Sold (Final) + Sold (Designer) pending Final; 17 Lowe\'s bay records excluded. Clients shown by first name only.</p>';
+  h+='<p class="fine">ClosetWare data, read-only, NJ only. Sold = Sold (Final) + Sold (Designer) pending Final; 17 Lowe\'s bay records excluded. Clients shown by first name with their phone and email from ClosetWare (your own clients only; tapping a number or email does not log anything).</p>';
   return h}
 function vidCard(v,reason,ft){return '<a class="vid" href="'+esc(v.url)+'" target="_blank" rel="noopener noreferrer"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/'+esc(v.vid)+'/mqdefault.jpg"><span class="vb">'+(ft?'<span class="vf">Focus: '+esc(ft)+'</span>':'')+'<b>'+esc(v.title)+'</b><span class="m">▶ '+esc(v.length)+' · '+esc(v.src)+(D.kind==='owner'&&v.essential?' · <span class="chip a">longer: '+esc(v.essential)+'</span>':'')+'</span><span class="why"><b>Why this helps:</b> '+esc(v.why)+'</span>'+(reason?'<span class="small">Your numbers: '+esc(reason)+'</span>':'')+'</span></a>'}
 function resList(sk,key){var L=D.lib,vs=(key&&L.focus_videos&&L.focus_videos[key])||((L.videos&&L.videos[sk])||[]),vu={};vs.forEach(function(v){vu[v.url]=1});
@@ -467,17 +467,28 @@ var NS_DOS=[['do','Personalize: their first name, their project, from you. Lead 
  ['dont','Don\'t pay or record the $50 Amazon gift card until the referral actually purchases.','CFNJ referral offer']];
 function nsDos(){return '<details class="card nsdos" open><summary><b>Texting past clients: do\'s and don\'ts</b></summary><ul class="tight small">'+NS_DOS.map(function(d){return '<li><b class="'+(d[0]==='do'?'pos':'neg')+'">'+(d[0]==='do'?'Do':'Don\'t')+':</b> '+esc(d[1].replace(/^Don't /,''))+' <span class="fine">('+esc(d[2])+')</span></li>'}).join('')+'</ul></details>'}
 function nsWho(p){return esc(p.name||'(no first name)')+(p.li?' '+esc(p.li)+'.':'')}
+/* Client phone + email (Andrew, Oct 25, 2026): every client record on a designer page shows a tap-to-call (tel:) and tap-to-email
+   (mailto:) link from ClosetWare (contacts.py: ph = mobile first, ph2 = other number, em, eo = email opt-out). Tapping a link only opens
+   the phone/mail app; it never logs anything (logging stays on the Texted / Called / Visited / Emailed buttons). */
+function ctFmt(d){d=String(d||'');return d.length===10?'('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6):d}
+function ctTel(d){d=String(d||'');return 'tel:'+(d.length===10?'+1'+d:d)}
+function ctLine(r,inl){if(!r)return'';var h=[];
+  if(r.ph)h.push('<a class="ctl" href="'+ctTel(r.ph)+'">'+(r.pm?'📱 ':'📞 ')+esc(ctFmt(r.ph))+'</a>');
+  if(r.ph2)h.push('<a class="ctl" href="'+ctTel(r.ph2)+'">📞 '+esc(ctFmt(r.ph2))+'</a>');
+  if(r.em)h.push('<a class="ctl cte" href="mailto:'+encodeURI(r.em)+'">✉️ '+esc(r.em)+'</a>'+(r.eo?'<span class="ctn"> (opted out of marketing email)</span>':''));
+  if(!h.length)h.push('<span class="ctn">no phone or email on file</span>');
+  return (inl?'<span class="ct cti">':'<div class="ct">')+h.join(inl?' ':'')+(inl?'</span>':'</div>')}
 function nsPromo(P,compact){var s=P.showroom,l=P.lowes;return '<div class="card nspromo"><div class="nsp"><span class="nsi">🍂</span><div><b>'+esc(s.name)+'</b><div class="small">'+esc(s.text)+'</div></div></div>'+
   '<div class="nsp"><span class="nsi">🏠</span><div><b>'+esc(l.name)+'</b><div class="small">'+esc(l.text)+(compact?'':' Deals and past clients that qualify carry the "Lowe\'s 18-mo" tag.')+(l.terms_note?'<br><i>For you, not for clients: '+esc(l.terms_note)+'</i>':'')+'</div></div></div>'+
   (P.referral?'<div class="nsp"><span class="nsi">🎁</span><div><b>'+esc(P.referral.name)+'</b><div class="small">'+esc(P.referral.text)+'</div></div></div>':'')+'</div>'}
 function nsCard(p,T){var tod=p.due===T,dc='';
   return '<div class="nsd" data-k="'+p.k+'" data-due="'+(tod?1:0)+'" data-sr="'+(p.showroom?1:0)+'" data-lw="'+(p.lowes?1:0)+'" data-usd="'+p.usd+'" data-i="'+p.i+'" data-ref="'+esc(p.ref)+'">'+
-  '<div class="top"><span><input type="checkbox" class="nsdone" aria-label="done"> <b>'+nsWho(p)+'</b> <span class="ref">'+esc(p.ref)+'</span></span><span class="amt">'+m0(p.usd)+'</span></div>'+
+  '<div class="top"><span><input type="checkbox" class="nsdone" aria-label="done"> <b>'+nsWho(p)+'</b> <span class="ref">'+esc(p.ref)+'</span></span><span class="amt">'+m0(p.usd)+'</span></div>'+ctLine(p)+
   '<div class="nsa"><span class="chip '+dc+'">'+(tod?'Due today':'By '+esc(p.due_l))+'</span><b>'+esc(p.label)+'</b></div>'+
   '<div class="small nsm">'+esc(p.room)+' · '+esc(p.stage)+' · '+esc(p.src)+(p.chips||[]).map(function(c){return ' <span class="chip '+(c==='showroom upgrade'?'g':'')+'">'+esc(c)+'</span>'}).join('')+'</div>'+
   '<div class="why small"><b>Why:</b> '+p.why.map(esc).join(' · ')+'</div>'+
   '<div class="nss"><span>'+esc(p.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>'+cbBtns('deal',p.ref)+'</div>'}
-function pcCard(c,P){return '<div class="nsd pc" data-pref="'+esc(c.ref)+'"><div class="top"><span><b>'+nsWho(c)+'</b> <span class="ref">'+esc(c.ref)+'</span></span><span class="amt">'+m0(c.usd)+'</span></div>'+
+function pcCard(c,P){return '<div class="nsd pc" data-pref="'+esc(c.ref)+'"><div class="top"><span><b>'+nsWho(c)+'</b> <span class="ref">'+esc(c.ref)+'</span></span><span class="amt">'+m0(c.usd)+'</span></div>'+ctLine(c)+
     '<div class="small nsm">'+esc(c.rooms.join(', '))+' · sold '+esc(c.sold)+(c.n>1?' · '+c.n+' projects':'')+' '+c.tags.map(function(t){return '<span class="chip '+(t.indexOf('Lowe')===0?'':'g')+'">'+esc(t)+'</span>'}).join('')+'</div>'+
     '<div class="why small"><b>Why this person:</b> '+esc(c.why)+(c.fit?' <span class="chip">'+esc(c.fit)+'</span>':'')+'</div>'+
     (c.text?'<div class="small nslab"><b>📱 Text (ready to send)</b></div><div class="nss nstx"><span>'+esc(c.text)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>':'')+

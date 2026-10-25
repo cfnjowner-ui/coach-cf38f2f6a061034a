@@ -210,3 +210,12 @@ details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:
 @media(min-width:700px){#cbdlg{align-items:center}}
 .chip.warn{background:#fff4d6;border-color:#e8c26a;color:#7a5a00}
 .warnbox{background:#fff4d6;border:1px solid #e8c26a;border-radius:10px;padding:8px 10px}
+
+/* Client phone + email on client cards (Oct 25, 2026): compact tap targets, wrap on small phones, never overflow */
+.ct{display:flex;flex-wrap:wrap;justify-content:flex-start;text-align:left;gap:2px 14px;margin-top:4px;font-size:13.5px;line-height:1.35;min-width:0}
+.ct .ctl{margin:0;color:var(--blue);text-decoration:none;white-space:nowrap;padding:3px 0;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.ct .cte{white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+.ct .ctn{color:var(--mut);font-size:12.5px}
+.nsd.tch.open>.ct{display:flex}
+.fdl{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;margin:3px 0}
+.ct.cti{display:inline-flex;margin-top:0;font-size:13px}
