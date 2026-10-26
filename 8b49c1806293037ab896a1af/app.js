@@ -91,6 +91,7 @@ function designer(x){var s=x.snap,g=x.goal,n=x.notes,T=D.team,tm=T.mtd,M=D.meta,
   if(x.test)h+='<div class="card" style="border-left:5px solid #c47f00;background:#fff8e6"><b>🧪 TEST PAGE</b><p class="small" style="margin:6px 0 0">'+esc(x.test.label||x.name)+': a copy of '+esc(x.test.mirror||'a designer')+'\'s real page for testing. Activity entries saved here are sent to the Activity log Sheet with Designer = "'+esc(x.act_who||x.name)+'" so they are easy to filter and delete. Not counted in team totals.</p></div>';
   h+='<div class="card hero"><div class="m">'+esc(M.month)+' · day '+M.day+' of '+M.dim+' · '+M.days_left+' days left</div><h2>'+esc(x.name)+'</h2><div class="m">Personal coaching page · coach, not judge: every number compares you fairly to the team for the leads you run.</div></div>';
   h+='<div class="minis"><a href="#wins">Wins</a><a href="#close">Close this month</a><a href="#pastc">Past clients</a><a href="#activity">My activity</a><a href="#snap">Snapshot</a><a href="#goal">Goal</a><a href="#notes">Next steps</a><a href="#focus">Focus</a><a href="#week">This week</a><a href="#learn">Library</a></div>';
+  h+=fuSection(x);
   /* wins first */
   h+=sec('wins','🌟 Wins & streaks','<div class="wins">'+x.wins.map(function(w){return '<div class="win"><div class="i">'+w.icon+'</div><div><b>'+esc(w.t)+'</b><span>'+esc(w.d)+'</span></div></div>'}).join('')+'</div>');
   h+=actSection(x);
@@ -141,8 +142,8 @@ function designer(x){var s=x.snap,g=x.goal,n=x.notes,T=D.team,tm=T.mtd,M=D.meta,
     (n.overdue_n?'<p class="small">'+n.overdue_n+' open opp'+(n.overdue_n==1?' has':'s have')+' a next appointment date that has passed: log what happened and book the next one.</p>':'')+
     (n.dorm_n?'<p class="small">Also '+n.dorm_n+' older opps ('+m0(n.dorm_usd)+', appointment 90+ days ago): get a yes, a no, or a firm appointment, so the pipeline stays honest.</p>':'')+'</div>';
   nh+='<div class="card"><b>Opps to fix</b> <span class="small">sorted by expected value (amount × close odds for its age)</span><div style="margin-top:8px">'+
-    (x.deals.length?x.deals.map(function(d){return '<div class="deal"><div class="top"><span><b>'+esc(d.name||'(no first name)')+'</b> · <span class="small">'+esc(d.stage)+' · '+esc(d.src)+'</span></span><span class="amt">'+m0(d.usd)+'</span></div>'+ctLine(d)+
-      '<div class="why"><span class="chip '+(d.upd>14?'r':'')+'">'+d.upd+'d since update</span><span class="chip">appt '+d.age+'d ago</span><span class="chip">score '+d.score+'</span>'+(d.next?'<span class="chip g">next '+esc(d.next)+'</span>':'')+'</div><div class="why small">Fix: '+d.miss.map(esc).join(' · ')+'</div></div>'}).join(''):'<p>All open opps have a dated future appointment, the right stage and a fresh note. 👏</p>')+'</div></div>';
+    (x.deals.length?'<div id="opps">'+x.deals.map(function(d,i){return '<div class="deal" data-ref="'+esc(d.ref)+'" data-oi="'+(d.oi!=null?d.oi:i)+'"><div class="top"><span><b>'+esc(d.name||'(no first name)')+'</b> · <span class="small">'+esc(d.stage)+' · '+esc(d.src)+'</span></span><span class="amt">'+m0(d.usd)+'</span></div>'+ctLine(d)+
+      '<div class="why"><span class="chip '+(d.upd>14?'r':'')+'">'+d.upd+'d since update</span><span class="chip">appt '+d.age+'d ago</span><span class="chip">score '+d.score+'</span>'+(d.next?'<span class="chip g">next '+esc(d.next)+'</span>':'')+'</div><div class="why small">Fix: '+d.miss.map(esc).join(' · ')+'</div>'+fuBox('deal',d.ref,1)+'</div>'}).join('')+'</div>':'<p>All open opps have a dated future appointment, the right stage and a fresh note. 👏</p>')+'</div></div>';
   nh+='<div class="card"><b>The rule</b><p class="small" style="margin:6px 0">Never leave an appointment without one of three outcomes: a <b>YES</b> (signed), a <b>NO</b>, or a <b>FIRM FOLLOW-UP APPOINTMENT</b>. Only if the client refuses all three, book a firm <b>phone</b> appointment at a specific time. Work your skills until that is almost never needed.</p><b>The one-line note</b><div class="tmpl" style="margin-top:8px">'+esc(M.note_template)+'</div><p class="fine">'+esc('<Date of note> Follow scheduled <date of next appointment> in <showroom/home/phone/wherever> at <time>.')+'</p><ul class="tight small">'+M.note_checks.map(function(c){return '<li>✔︎ '+esc(c[1])+'</li>'}).join('')+'</ul></div>';
   nh+='<div class="card"><b>Where it goes (stages)</b><ul class="tight small">'+M.stage_guide.map(function(g){return '<li><b>'+esc(g.when)+'</b> → '+esc(g.stage)+'. '+esc(g.note)+'</li>'}).join('')+'</ul></div>';
   h+=sec('notes','📝 Next-step compliance',nh);
@@ -150,7 +151,7 @@ function designer(x){var s=x.snap,g=x.goal,n=x.notes,T=D.team,tm=T.mtd,M=D.meta,
   var L=D.lib,fh='';
   if(!x.focus.length)fh='<div class="card"><b>No data-driven gaps flagged right now.</b> Keep your rhythm: a yes, a no, or a firm follow-up appointment every time, with the one-line note. Pick any skill in the library to sharpen.</div>';
   x.focus.forEach(function(f,i){var S=L.skills[f.skill];fh+='<div class="card focus"><div class="small">Focus '+(i+1)+' · '+S.icon+' '+esc(S.name)+'</div><h3>'+esc(f.title)+'</h3><div class="ev">'+esc(f.evidence)+'</div>'+
-    (f.deals&&f.deals.length?'<div style="margin-top:6px">'+f.deals.map(function(d){return '<div class="fdl"><span class="chip a">'+esc(d.name)+' '+m0(d.usd)+'</span>'+ctLine(d,1)+'</div>'}).join('')+'</div>':'')+
+    (f.deals&&f.deals.length?'<div style="margin-top:6px">'+f.deals.map(function(d){return '<div class="fdl"'+(d.ref?' data-ref="'+esc(d.ref)+'"':'')+'><span class="chip a">'+esc(d.name)+' '+m0(d.usd)+'</span>'+ctLine(d,1)+(d.ref?fuBox('deal',d.ref,1):'')+'</div>'}).join('')+'</div>':'')+
     '<div style="margin-top:8px"><b class="small">What good looks like</b><ul class="tight">'+S.good.map(function(g){return '<li>'+esc(g)+'</li>'}).join('')+'</ul></div>'+
     '<div style="margin-top:8px"><b class="small">Watch &amp; learn: short videos on exactly this</b>'+resList(f.skill,f.key)+'</div></div>'});
   h+=sec('focus','🧭 Your focus areas',fh+'<p class="fine">Detected from your ClosetWare data with simple rules (see How it works); ranked by the dollars involved. Up to 3, never a list of faults.</p>');
@@ -487,13 +488,13 @@ function nsCard(p,T){var tod=p.due===T,dc='';
   '<div class="nsa"><span class="chip '+dc+'">'+(tod?'Due today':'By '+esc(p.due_l))+'</span><b>'+esc(p.label)+'</b></div>'+
   '<div class="small nsm">'+esc(p.room)+' · '+esc(p.stage)+' · '+esc(p.src)+(p.chips||[]).map(function(c){return ' <span class="chip '+(c==='showroom upgrade'?'g':'')+'">'+esc(c)+'</span>'}).join('')+'</div>'+
   '<div class="why small"><b>Why:</b> '+p.why.map(esc).join(' · ')+'</div>'+
-  '<div class="nss"><span>'+esc(p.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>'+cbBtns('deal',p.ref)+'</div>'}
+  '<div class="nss"><span>'+esc(p.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>'+cbBtns('deal',p.ref)+fuBox('deal',p.ref)+'</div>'}
 function pcCard(c,P){return '<div class="nsd pc" data-pref="'+esc(c.ref)+'"><div class="top"><span><b>'+nsWho(c)+'</b> <span class="ref">'+esc(c.ref)+'</span></span><span class="amt">'+m0(c.usd)+'</span></div>'+ctLine(c)+
     '<div class="small nsm">'+esc(c.rooms.join(', '))+' · sold '+esc(c.sold)+(c.n>1?' · '+c.n+' projects':'')+' '+c.tags.map(function(t){return '<span class="chip '+(t.indexOf('Lowe')===0?'':'g')+'">'+esc(t)+'</span>'}).join('')+'</div>'+
     '<div class="why small"><b>Why this person:</b> '+esc(c.why)+(c.fit?' <span class="chip">'+esc(c.fit)+'</span>':'')+'</div>'+
     (c.text?'<div class="small nslab"><b>📱 Text (ready to send)</b></div><div class="nss nstx"><span>'+esc(c.text)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>':'')+
     (c.lowes&&P.lowes.terms_note?'<div class="fine nslw">For you only, not in the text: '+esc(P.lowes.terms_note)+'</div>':'')+
-    '<details class="nscall"><summary class="small"><b>📞 Call version</b></summary><div class="nss"><span>'+esc(c.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></details>'+cbBtns('pc',c.ref)+'<button type="button" class="cbdnc" data-ref="'+esc(c.ref)+'">🚫 Don\'t contact</button></div>'}
+    '<details class="nscall"><summary class="small"><b>📞 Call version</b></summary><div class="nss"><span>'+esc(c.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></details>'+cbBtns('pc',c.ref)+fuBox('pc',c.ref)+'<button type="button" class="cbdnc" data-ref="'+esc(c.ref)+'">🚫 Don\'t contact</button></div>'}
 function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N.deals||[];
   h+=nsPromo(P);
   h+='<div class="grid">'+tile('In play',m0(N.usd),N.n+' open quote'+(N.n===1?'':'s')+' · every one is winnable','neu')+tile('Due today',n0(N.today_n),'next steps to do today ('+N.per_day+' a day, biggest $ first)',N.today_n?'neu':'neu')+
@@ -502,7 +503,8 @@ function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N
   else{h+='<div class="card"><div class="nsbar"><div class="seg nsf"><button data-f="all" class="on">All '+ds.length+'</button><button data-f="due">Today</button><button data-f="sr">Showroom</button><button data-f="lw">Lowe\'s</button></div><div class="seg nso"><button data-o="pri" class="on">Priority</button><button data-o="usd">$</button></div></div>'+
    '<p class="fine" style="margin:4px 0 8px">One next step per quote, ordered by dollars × urgency. Tap Copy for the talk track; tick the box when it is done (saved on this device). After each call, write the one-line note: date, place, time.</p><div id="nsl">'+ds.map(function(p){return nsCard(p,T)}).join('')+'</div>'+
    (ds.length>8?'<button class="btn ghost" id="nsmore" type="button" style="width:100%">Show all '+ds.length+'</button>':'')+
-   '<div id="nstd" class="nstd hidden"><div class="nstdh"><b>✓ Contacted today</b> <span class="small" id="nstdn"></span></div><p class="fine" style="margin:2px 0 6px">Logged with the buttons. Each one goes back to its normal place in your list tomorrow. Tap a name to open the card.</p><div id="nstdl"></div></div></div>'}
+   '<div id="nstd" class="nstd hidden"><div class="nstdh"><b>✓ Contacted today</b> <span class="small" id="nstdn"></span></div><p class="fine" style="margin:2px 0 6px">Logged with the buttons. Each one goes back to its normal place in your list tomorrow. Tap a name to open the card.</p><div id="nstdl"></div></div>'+
+   '<div id="nssc" class="nstd nssc hidden"><div class="nstdh"><b>📅 Scheduled by your notes</b> <span class="small" id="nsscn"></span></div><p class="fine" style="margin:2px 0 6px">Your result / next-step note set a later date. Each one comes back pinned under "Follow up today" at the top of the page on that day. Tap a name to open the card.</p><div id="nssl"></div></div></div>'}
   h+='<details class="card"><summary><b>How each next step is picked</b> <span class="small">(rules + sources)</span></summary><ul class="tight small">'+NS_RULES.map(function(r){return '<li><b>'+esc(r[0])+'</b> → '+esc(r[1])+' <span class="fine">('+esc(r[2])+')</span></li>'}).join('')+'</ul><p class="fine">First rule that fits wins. Read from ClosetWare (stage, amount, appointment, follow-up date, dated notes) by rule, not by meaning: if the tag is wrong, trust what you know about the client. Never treat a quote as gone: a quiet quote needs a reason to call.</p></details>';
   var out=sec('close','💼 Close this month',h);
   /* past clients */
@@ -572,7 +574,7 @@ function cbState(x){var N=x.ns,td=ACT.ymd(new Date()),q=cbAgo(N.pc_quiet||60),st
   var L=cbLoad(x);['pc','deal'].forEach(function(k){Object.keys(L[k]).forEach(function(r){var o=L[k][r];add(k,r,o.a,o.d,o.t)})});var ch=0;Object.keys(L.dnc).forEach(function(r){if(rsd(r,(L.dnc[r]||{}).d)){delete L.dnc[r];ch=1}else st.dnc[r]=1});if(ch)cbSave(x,L);
   return st}
 /* past-client list: ranked (top 10 + reserve) minus everyone contacted in the quiet window, first 10 */
-function cbPast(x,st){var N=x.ns;return (N.past||[]).concat(N.past_res||[]).filter(function(c){return !st.pc[c.ref]&&!st.dnc[c.ref]}).slice(0,10)}
+function cbPast(x,st){var N=x.ns,g=fuState(x);return (N.past||[]).concat(N.past_res||[]).filter(function(c){return !st.pc[c.ref]&&!st.dnc[c.ref]&&!(g[c.ref]&&g[c.ref].g)}).slice(0,10)}   /* a governing follow-up note holds the client until its date (then pinned) */
 function cbPcRender(x,anim){var L=$('#pcl');if(!L)return;var st=cbState(x),want=cbPast(x,st),have={};
   [].slice.call(L.querySelectorAll('.nsd.pc')).forEach(function(el){var r=el.dataset.pref;if(want.some(function(c){return c.ref===r}))have[r]=el;else el.remove()});
   want.forEach(function(c){var el=have[c.ref];if(!el){var t=document.createElement('div');t.innerHTML=pcCard(c,x.ns.promo);el=t.firstChild;cbWireCard(el);if(anim){el.classList.add('cbin');setTimeout(function(){el.classList.remove('cbin')},600)}}L.appendChild(el)});
@@ -602,16 +604,18 @@ function cbFlushAll(){var x=CB_X;if(!x)return;var F=D.meta.activity_form,es=ACT.
     if(ok){e.s='sent';e.sa=Date.now();e.sb=1}else{e.s='pending';hit=true}});ACT.save(x.slug,es);
   Object.keys(CB_T).forEach(function(k){clearTimeout(CB_T[k]);delete CB_T[k]});if(hit){ACT.save(x.slug,es);cbSend(x)}
   if(CB_SHEET&&CB_SHEET.held){CB_SHEET.held=false;var u=$('#cbUndo');if(u)u.remove();var m=$('#cbMsg');if(m)m.textContent=CB_SHEET.done}}
-function cbRefresh(x,anim){cbPcRender(x,anim);cbDealRender(x);if($('#actTotals')&&ACT_CUR)actRender(ACT_CUR)}
+function cbRefresh(x,anim){cbPcRender(x,anim);fuRender(x);cbDealRender(x);if($('#actTotals')&&ACT_CUR)actRender(ACT_CUR)}
 /* a tap */
 function cbTap(x,btn){var kind=btn.dataset.kind,ref=btn.dataset.ref,a=btn.dataset.cb,card=btn.closest('.nsd');
+  var box=card&&card.querySelector('.fu'),pend=box&&(box.querySelector('.futx').value.trim()||box.dataset.ov);
   var e=cbEntry(x,kind,ref,a);if(!e){toast('Could not save on this device (storage is off or full)');return}
   var L=cbLoad(x),prev=L[kind][ref]||null;L[kind][ref]={a:a,d:e.d,t:e.t};cbSave(x,L);
+  var fr=pend?fuSave(x,box,e.t,true):null;          /* result / next step typed first: saved with the tap (1 s later, so the note governs) */
   if(e.s==='hold')CB_T[e.id]=setTimeout(function(){cbCommit(x,e.id);if(CB_SHEET&&CB_SHEET.id===e.id){CB_SHEET.held=false;var u=$('#cbUndo');if(u)u.remove();var m=$('#cbMsg');if(m)m.textContent=CB_SHEET.done}},CB_HOLD);
   var what=(kind==='pc'?'Past client #':'Deal #')+ref;
   if(card&&kind==='pc'){card.classList.add('cbout');setTimeout(function(){cbRefresh(x,true)},330)}
   else if(card){card.classList.add('cbout');setTimeout(function(){card.classList.remove('cbout','open');cbRefresh(x,false)},330)}else cbRefresh(x,true);
-  cbSheet(x,{id:e.id,kind:kind,ref:ref,a:a,prev:prev,what:what,held:e.s==='hold',done:'✓ '+a+' · '+what+' · logged'})}
+  cbSheet(x,{id:e.id,t:e.t,kind:kind,ref:ref,a:a,prev:prev,what:what,held:e.s==='hold',fumsg:fr&&fr.msg,done:'✓ '+a+' · '+what+' · logged'+(fr?' · '+fr.msg:'')})}
 function cbUndo(x,s){clearTimeout(CB_T[s.id]);delete CB_T[s.id];var es=ACT.load(x.slug),left=es.filter(function(e){return !(e.id===s.id&&e.s==='hold')});
   if(left.length===es.length){toast('Already sent; it can\'t be undone now');return false}
   ACT.save(x.slug,left);var L=cbLoad(x);if(s.prev)L[s.kind][s.ref]=s.prev;else delete L[s.kind][s.ref];cbSave(x,L);cbRefresh(x,true);toast('Undone. Nothing was sent');return true}
@@ -619,18 +623,16 @@ function cbUndo(x,s){clearTimeout(CB_T[s.id]);delete CB_T[s.id];var es=ACT.load(
 function cbSheet(x,s){var el=$('#cbsheet');if(!el){el=document.createElement('div');el.id='cbsheet';el.setAttribute('role','status');document.body.appendChild(el)}
   if(CB_SHEET&&CB_SHEET.hide)clearTimeout(CB_SHEET.hide);CB_SHEET=s;
   el.innerHTML='<div class="cbrow"><span id="cbMsg">✓ '+esc(s.a)+' · '+esc(s.what)+'</span>'+(s.held?'<button type="button" class="cbu" id="cbUndo">Undo <span id="cbCd">5</span></button>':'')+'<button type="button" class="cbx" id="cbClose" aria-label="Close">✕</button></div>'+
-    (s.nodet?'':'<button type="button" class="cbdet" id="cbDet">＋ Add detail (optional): voice or typing</button><div id="cbBox" class="hidden"><div class="cbmicw"><button type="button" class="mic sm" id="cbMic" aria-label="Tap and speak">🎤</button><span class="small" id="cbMicS">Tap the mic and say what happened, or type below.</span></div>'+
-    '<textarea id="cbTxt" rows="2" maxlength="400" placeholder="e.g. Loved the closet, thinking about the garage in spring. Will visit the showroom Sat."></textarea><div class="fine" style="margin:2px 0 6px">No last names or phone numbers, please: this goes to Andrew\'s activity log with the record number.</div><button type="button" class="btn" id="cbSave">Save detail</button></div>')+'';
+    (s.nodet?'':s.fumsg?'<div class="small cbfu">📝 '+esc(s.fumsg)+'</div>':'<button type="button" class="cbdet" id="cbDet">＋ Add result / next step (optional): voice or typing</button><div id="cbBox" class="hidden">'+fuBox(s.kind,s.ref)+
+    '<div class="fine" style="margin:2px 0 0">No last names or phone numbers, please: this goes to Andrew\'s activity log with the record number. The date under the box decides when this client comes back on your page.</div></div>')+'';
   el.classList.remove('hidden');
   var cd=5,iv=s.held?setInterval(function(){cd--;var c=$('#cbCd');if(!c||cd<=0||CB_SHEET!==s){clearInterval(iv);return}c.textContent=cd},1000):null;
   var u=$('#cbUndo');if(u)u.onclick=function(){clearInterval(iv);if(cbUndo(x,s))cbClose()};
   $('#cbClose').onclick=function(){cbClose()};
   function arm(){if(s.hide)clearTimeout(s.hide);s.hide=setTimeout(function(){if(CB_SHEET===s&&(!$('#cbBox')||$('#cbBox').classList.contains('hidden'))&&!s.held)cbClose();else if(CB_SHEET===s)arm()},s.nodet?7000:14000)}arm();
   if(s.nodet)return;
-  $('#cbDet').onclick=function(){$('#cbDet').classList.add('hidden');$('#cbBox').classList.remove('hidden');clearTimeout(s.hide);$('#cbTxt').focus({preventScroll:true})};
-  cbDictate($('#cbMic'),$('#cbTxt'),$('#cbMicS'));
-  $('#cbSave').onclick=function(){var t=cbMask($('#cbTxt').value);if(!t){toast('Say or type the detail first');return}
-    if(s.held){cbCommit(x,s.id);s.held=false}var e=cbEntry(x,s.kind,s.ref,s.a,t);if(!e){toast('Could not save on this device');return}cbSend(x);cbRefresh(x,false);cbClose();toast('Detail saved'+(D.meta.activity_form?' and sent to Andrew':''))}}
+  if(s.fumsg)return;
+  $('#cbDet').onclick=function(){$('#cbDet').classList.add('hidden');$('#cbBox').classList.remove('hidden');clearTimeout(s.hide);var b=$('#cbBox .fu');fuPaint(CB_X||x);var t=b&&b.querySelector('.futx');if(t)t.focus({preventScroll:true})}}
 /* ── Don't contact (Andrew, Oct 22, 2026, 4:41 PM). "🚫 Don't contact" on every past-client card (designer pages + owner view):
    confirm dialog with an optional reason (voice or typing, phone numbers / emails masked like detail rows) -> one Activity form row with
    ALL counts 0 and the note "[pc] Past client #<ref> - Do not contact" (+ " - reason: <text>"), held CB_HOLD ms with the same Undo as the
@@ -657,20 +659,20 @@ function cbDnc(x,ref,reason,card){var now=new Date(),F=D.meta.activity_form;
   var what='Past client #'+ref;cbSheet(x,{id:e.id,kind:'dnc',ref:ref,a:'Don\'t contact',prev:null,what:what,held:e.s==='hold',nodet:true,done:'🚫 Don\'t contact · '+what+(F?' · sent to Andrew':' · saved')})}
 function cbClose(){var el=$('#cbsheet');if(el){el.classList.add('hidden');el.innerHTML=''}if(CB_SHEET&&CB_SHEET.hide)clearTimeout(CB_SHEET.hide);CB_SHEET=null}
 /* voice to text for the detail box (same Web Speech API setup as the tracker's mic; keyboard 🎤 always works too) */
-function cbDictate(mic,txt,S){if(!ACT.speechOK()){mic.classList.add('hidden');S.textContent='Type below, or use your keyboard\'s 🎤 to dictate.';return}
+function cbDictate(mic,txt,S,done){if(!ACT.speechOK()){mic.classList.add('hidden');S.textContent='Type below, or use your keyboard\'s 🎤 to dictate.';return}
   var R=window.SpeechRecognition||window.webkitSpeechRecognition,rec=null,base='';
   mic.onclick=function(){if(rec){try{rec.stop()}catch(e){}return}try{rec=new R()}catch(e){mic.classList.add('hidden');S.textContent='Type below, or use your keyboard\'s 🎤.';return}
     rec.lang='en-US';rec.interimResults=true;rec.continuous=false;base=txt.value.trim();
     rec.onstart=function(){mic.classList.add('on');S.textContent='Listening… tap again to stop'};
-    rec.onresult=function(ev){var f='';for(var i=0;i<ev.results.length;i++)f+=ev.results[i][0].transcript;txt.value=(base?base+' ':'')+f.trim()};
+    rec.onresult=function(ev){var f='';for(var i=0;i<ev.results.length;i++)f+=ev.results[i][0].transcript;txt.value=(base?base+' ':'')+f.trim();try{txt.dispatchEvent(new Event('input',{bubbles:true}))}catch(e){}};
     rec.onerror=function(ev){S.textContent=ev.error==='not-allowed'?'Microphone access is off for this site. Type, or use your keyboard\'s 🎤.':'Voice stopped. You can type instead.'};
-    rec.onend=function(){mic.classList.remove('on');rec=null;if(txt.value.trim())S.textContent='Got it. Tap Save detail.'};
+    rec.onend=function(){mic.classList.remove('on');rec=null;if(done)done();else if(txt.value.trim())S.textContent='Got it. Tap Save detail.'};
     try{rec.start()}catch(e){rec=null;S.textContent='Voice could not start. You can type instead.'}}}
-function cbWire(x){CB_X=x;cbPcRender(x,false);cbDealRender(x);
+function cbWire(x){CB_X=x;cbPcRender(x,false);fuRender(x);cbDealRender(x);fuWire();
   if(!cbWire.on){cbWire.on=1;
     document.addEventListener('click',function(ev){var dn=ev.target.closest&&ev.target.closest('.cbdnc');if(dn&&CB_X){ev.preventDefault();cbDncAsk(CB_X,dn);return}
       var b=ev.target.closest&&ev.target.closest('.cbt');if(b&&CB_X){ev.preventDefault();cbTap(CB_X,b);return}
-      var h=ev.target.closest&&ev.target.closest('#nstdl .nsd.tch .top');if(h&&!ev.target.closest('input')){h.parentNode.classList.toggle('open')}});
+      var h=ev.target.closest&&ev.target.closest('#nstdl .nsd.tch .top, #nssl .nsd.tch .top');if(h&&!ev.target.closest('input')){h.parentNode.classList.toggle('open')}});
     window.addEventListener('pagehide',cbFlushAll);document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')cbFlushAll()})}}
 /* owner: 30,000-ft roll-up */
 function nsOwner(){var N=D.owner&&D.owner.ns;if(!N)return'';var pc=N.promo_cnt,mx=Math.max.apply(null,N.types.map(function(t){return t.usd}).concat([1])),h='';
@@ -682,6 +684,7 @@ function nsOwner(){var N=D.owner&&D.owner.ns;if(!N)return'';var pc=N.promo_cnt,m
   h+='<div class="card"><b>$ at risk by designer</b> <span class="small">most dollars at risk first · tap a row to open the page</span><div class="tw"><table><thead><tr><th>Designer</th><th>In play</th><th>$ at risk</th><th>Quiet 14+ d</th><th>Showroom</th><th>Lowe\'s deals / past</th><th>Past clients</th><th>Top next step</th></tr></thead><tbody>'+
    N.designers.map(function(r){return '<tr class="click" data-s="'+r.slug+'"><td>'+esc(r.name)+'</td><td>'+m0(r.usd)+' <span class="small">('+r.n+')</span></td><td class="'+(r.risk_usd>0?'neg':'neu')+'">'+m0(r.risk_usd)+'</td><td class="'+(r.nodate_n?'neg':'neu')+'">'+r.nodate_n+'</td><td>'+r.showroom+'</td><td>'+r.lowes_deals+' / '+r.lowes_past+'</td><td>'+r.past+' <span class="small">of '+r.past_pool+'</span></td><td class="small">'+(r.top?esc(r.top.label)+' ('+mk(r.top.usd)+')':'–')+'</td></tr>'}).join('')+'</tbody></table></div>'+
    '<details style="margin-top:8px"><summary class="small">Strengths and habits by designer</summary><ul class="tight small">'+N.designers.map(function(r){return '<li><b>'+esc(r.name)+'</b>: <span class="pos">'+r.strengths.map(esc).join('; ')+'</span>'+(r.habits.length?' · <span class="neg">'+r.habits.map(esc).join('; ')+'</span>':'')+'</li>'}).join('')+'</ul></details></div>';
+  h+=fuOwner();
   h+=nsDnc(N.dnc);
   h+=nsPromo(N.promo,true);
   h+='<p class="small" style="margin:4px 2px 10px">📱 The past-client text template on every designer page is modeled on Angela\'s past-client text (Teams Design Team chat, Oct 22). The $5,000 threshold is enforced: every text says "free color upgrade on agreements over $5,000 when you visit our Fanwood showroom", with no end date and only a [your cell] placeholder (no phone numbers).</p>';
@@ -693,3 +696,99 @@ function nsDnc(Z){var R=(Z&&Z.rows)||[];return '<div class="card nsdnc"><b>🚫 
    :'<p class="small" style="margin:6px 0 0">Nobody yet. When a designer taps 🚫 Don\'t contact on a past-client card, it shows here after the next activity sync.</p>')+
   '<p class="fine" style="margin-top:6px">Want one back on the lists? Ask Sales Manager to restore it by record number; it returns at the next refresh.'+(Z&&Z.restored?' Restored so far: '+Z.restored+'.':'')+'</p></div>'}
 function pc0(a,b){return b?Math.round(a/b*100)+'%':'–'}
+/* ── Follow-up notes (Andrew, Oct 25, 2026). Every record on a designer page (open quotes, past clients incl. the ones that slide in,
+   Opps to fix, focus deals, the "Follow up today" pins, the owner drill-downs) carries one "Result / next step" box: type or dictate what
+   happened, e.g. "let's follow up tomorrow". site/followup.js turns the words into the next follow-up date (Eastern time, no outside
+   service; chips / date picker override; nothing found -> open quote 3 business days, past client 30 days, and the page says so).
+   Save = one tracker entry with ALL counts 0 (never a contact, never a day logged), note
+     "[pc] Past client #<ref> - note [fu 2026-10-26]: <masked text> (14:05:09)"  ([fu none] = No date),
+   stored on this device at once and sent through the same Activity Google Form (no new field: the Sheet keeps its 5 columns).
+   Rule per record: the latest note governs while no tap is newer (same-day HH:MM:SS from the note text; a note typed into the box before
+   a tap is saved 1 s after that tap). Governing + date later -> off its list (past client) / into "📅 Scheduled" (quote) until then;
+   on/after the date -> pinned under "📌 Follow up today" at the top of the page, overdue first in amber, with the note, until a new note or
+   tap. A tap after the note replaces it (normal tap rules). No date -> just shows the text. Don't contact always wins. The build
+   (nextsteps.fu_state) applies the same rule from the Sheet rows, so phone and computer agree after the next sync. ── */
+var FU_CUR={};
+function fuToday(){return FU.etToday()}
+function fuState(x){var N=x.ns||{},note={},tap={},srv=N.fu||{};
+  function nt(ref,v){var o=note[ref],w=v.d+' '+v.h;if(o&&w<o.d+' '+o.h)return;if(o&&w===o.d+' '+o.h){if(o.sg!=null)v.sg=o.sg;if(!v.f&&o.f)return}note[ref]=v}
+  function tp(ref,d,h){var w=d+' '+h;if(!tap[ref]||w>tap[ref])tap[ref]=w}
+  Object.keys(srv).forEach(function(r){var v=srv[r];nt(r,{k:v.k,d:v.d,h:v.h,n:v.n,f:v.f,sg:v.g?1:0})});
+  function row(n,d){var a=FU.read(n);if(a){nt(a.ref,{k:a.k,d:d,h:a.h,n:a.n,f:a.f});return}var b=FU.tap(n);if(b)tp(b.ref,d,b.h)}
+  ((x.activity&&x.activity.rows)||[]).forEach(function(r){row(r.n,r.d)});
+  ACT.load(x.slug).concat(actArch(x.slug)).forEach(function(e){row(e.note,e.d)});
+  var L=cbLoad(x);['pc','deal'].forEach(function(k){Object.keys(L[k]).forEach(function(r){var o=L[k][r];if(o.t)tp(r,o.d,cbHms(new Date(o.t)))})});
+  Object.keys(note).forEach(function(r){var v=note[r];v.g=!!(v.f&&v.sg!==0&&(!tap[r]||v.d+' '+v.h>=tap[r]))});
+  return note}
+function fuFind(x,ref){var N=x.ns||{},a=[].concat(N.fu_recs||[],N.past||[],N.past_res||[]);for(var i=0;i<a.length;i++)if(a[i].ref===ref)return{k:'pc',c:a[i]};
+  var ds=N.deals||[];for(i=0;i<ds.length;i++)if(ds[i].ref===ref)return{k:'deal',p:ds[i]};
+  var o=(x.deals||[]).concat.apply(x.deals||[],(x.focus||[]).map(function(f){return f.deals||[]}));for(i=0;i<o.length;i++)if(o[i].ref===ref)return{k:'deal',m:o[i]};return null}
+function fuBox(kind,ref,fold){return '<div class="fu" data-kind="'+kind+'" data-ref="'+esc(ref)+'"><div class="fulast hidden"></div>'+(fold?'<details class="fufold"><summary>📝 Result / next step</summary>':'')+
+  '<div class="furow"><textarea class="futx" rows="1" maxlength="400" enterkeyhint="done" autocapitalize="sentences" aria-label="Result and next step" placeholder="Result / next step, e.g. \'call back Friday\' or \'follow up in 2 weeks\'"></textarea><button type="button" class="mic sm fumic" aria-label="Tap and speak">🎤</button><button type="button" class="btn fusv">Save</button></div>'+
+  '<div class="fumore"><div class="fupv"></div><div class="fuch">'+FU.CHIPS.map(function(c){return '<button type="button" class="fuc" data-c="'+c[1]+'">'+c[0]+'</button>'}).join('')+'<input type="date" class="fudt" aria-label="Pick a follow-up date"></div></div>'+(fold?'</details>':'')+'</div>'}
+function fuMini(x,ref,m){return '<div class="nsd fum" data-fref="'+esc(ref)+'"><div class="top"><span><b>'+esc(m.name||'(no first name)')+'</b> <span class="ref">'+esc(ref)+'</span></span><span class="amt">'+m0(m.usd||0)+'</span></div>'+ctLine(m)+
+  '<div class="small nsm">Open quote'+(m.stage?' · '+esc(m.stage):'')+(m.src?' · '+esc(m.src):'')+'</div>'+cbBtns('deal',ref)+fuBox('deal',ref)+'</div>'}
+function fuPick(box){var ov=box.dataset.ov||'',k=box.dataset.kind,t=cbMask(box.querySelector('.futx').value),td=fuToday();
+  if(ov==='none')return{d:null,src:'chip',t:t};if(ov)return{d:ov,src:'chip',t:t};var p=FU.parse(t,td,k);return{d:p.d,src:p.src,why:p.why,t:t}}
+function fuPreview(box){var pv=box.querySelector('.fupv'),tx=box.querySelector('.futx'),td=fuToday(),has=!!tx.value.trim()||!!box.dataset.ov;
+  box.classList.toggle('fuopen',has||box.contains(document.activeElement));
+  [].forEach.call(box.querySelectorAll('.fuc'),function(b){b.classList.toggle('on',(box.dataset.ovc||'')===b.dataset.c)});
+  if(!has){pv.innerHTML='<span class="fine">Say or type what happened and when to follow up, or pick a date:</span>';return}
+  var p=fuPick(box),w=p.d?'<b>Next follow-up: '+esc(FU.label(p.d,td))+'</b> <span class="fine">('+esc(FU.rel(p.d,td))+')</span>':'<b>No follow-up date</b>';
+  pv.innerHTML=w+' <span class="fine">'+(p.src==='chip'?'· you picked it':p.src==='parsed'?'· from your note':p.src==='default'?'· nothing in the note says when, so '+esc(p.why)+'. Pick a date to change it.':p.src==='none'?'· '+esc(p.why||'')+'. Pick a date if you want one.':'')+'</span>'}
+function fuEntry(x,kind,ref,d,text,at){var F=D.meta.activity_form,e={id:Date.now()+'-'+Math.random().toString(36).slice(2,7),d:ACT.ymd(at),t:+at,c:{},note:FU.note(kind,ref,d,text,at),cb:kind,fu:1};
+  if(F){e.w=actWho(x);e.s='pending'}var es=ACT.load(x.slug);es.push(e);if(!ACT.save(x.slug,es))return null;
+  actKey(e.w||actWho(x),e).then(function(k){var a2=ACT.load(x.slug);a2.forEach(function(z){if(z.id===e.id)z.k=k});ACT.save(x.slug,a2)},function(){});return e}
+/* save the box; after = tap time (ms) when saved together with a tap: the note is stamped 1 s later so it governs */
+function fuSave(x,box,after,quiet){var p=fuPick(box),td=fuToday();if(!p.t&&!box.dataset.ov){if(!quiet)toast('Type or say the result first');return null}
+  var at=new Date();if(after&&+at<=after)at=new Date(after+1000);
+  var e=fuEntry(x,box.dataset.kind,box.dataset.ref,p.d,p.t,at);if(!e){toast('Could not save on this device (storage is off or full)');return null}
+  box.querySelector('.futx').value='';delete box.dataset.ov;delete box.dataset.ovc;var dt=box.querySelector('.fudt');if(dt)dt.value='';box.classList.remove('fuopen');
+  cbSend(x);var msg=(p.d?'Next follow-up '+FU.label(p.d,td):'Note saved, no follow-up date')+(D.meta.activity_form?' · sent to Andrew':' · saved');
+  if(!quiet)toast(msg);if(!after)fuRefreshAll(x);return {e:e,d:p.d,msg:msg}}
+function fuLast(v,td){if(!v)return'';var s=v.g?FU.status(v.f,td):'',t=v.n?esc(v.n):'<i>(date only)</i>';
+  var chip=s==='over'?'<span class="chip a">⚠️ Overdue · was due '+esc(FU.label(v.f,td))+'</span>':s==='due'?'<span class="chip fud">📌 Follow up today</span>':s==='later'?'<span class="chip">📅 Next: '+esc(FU.label(v.f,td))+'</span>':v.f&&!v.g?'<span class="chip g">✓ contacted since</span>':'';
+  return chip+' <span class="fun">📝 '+esc(FU.label(v.d,td))+': '+t+'</span>'}
+function fuPaint(x){var st=FU_CUR,td=fuToday();document.querySelectorAll('.fu[data-ref]').forEach(function(b){var v=st[b.dataset.ref],l=b.querySelector('.fulast');if(!l)return;
+    l.classList.toggle('hidden',!v);l.innerHTML=fuLast(v,td);var s=v&&v.g?FU.status(v.f,td):'';l.className='fulast'+(v?'':' hidden')+(s==='over'?' fuo':'');
+    if(!ACT.speechOK()){var m=b.querySelector('.fumic');if(m)m.classList.add('hidden')}fuPreview(b)})}
+function fuSort(st,refs){return refs.sort(function(a,b){var x=st[a],y=st[b];return x.f<y.f?-1:x.f>y.f?1:(x.d+x.h<y.d+y.h?-1:1)})}
+function fuRender(x){var st=fuState(x),td=fuToday(),cs=cbState(x),due=[],later=[];FU_CUR=st;var F=$('#ful');
+  Object.keys(st).forEach(function(r){var v=st[r];if(!v.g||cs.dnc[r])return;(v.f<=td?due:later).push(r)});fuSort(st,due);fuSort(st,later);
+  var NL=$('#nsl'),SL=$('#nssl'),dueS={},latS={};due.forEach(function(r){dueS[r]=1});later.forEach(function(r){latS[r]=1});
+  if(F){[].slice.call(F.children).forEach(function(el){var r=el.dataset.ref||el.dataset.pref||el.dataset.fref;if(dueS[r])return;
+      if(el.dataset.ref&&NL){el.classList.remove('fuover','fudue');NL.appendChild(el)}else el.remove()});
+    due.forEach(function(r){var el=document.querySelector('.nsd[data-ref="'+r+'"]')||F.querySelector('[data-pref="'+r+'"],[data-fref="'+r+'"]');
+      if(!el){var f=fuFind(x,r);if(!f)return;var t=document.createElement('div');t.innerHTML=f.k==='pc'?pcCard(f.c,x.ns.promo):fuMini(x,r,f.m||f.p);el=t.firstChild;cbWireCard(el);if(f.p&&!f.m){}}
+      el.classList.remove('tch','open');var ch=el.querySelector('.cbdone');if(ch)ch.remove();el.classList.toggle('fuover',st[r].f<td);el.classList.toggle('fudue',st[r].f===td);F.appendChild(el)})}
+  if(SL){[].slice.call(SL.children).forEach(function(el){if(!latS[el.dataset.ref]&&NL){el.classList.remove('tch','open','fusch');NL.appendChild(el)}});
+    later.forEach(function(r){var el=document.querySelector('#nsl .nsd[data-ref="'+r+'"], #nstdl .nsd[data-ref="'+r+'"]');if(el){var ch=el.querySelector('.cbdone');if(ch)ch.remove();el.classList.add('tch','fusch');el.classList.remove('open');SL.appendChild(el)}});
+    var ns=SL.children.length;$('#nssc').classList.toggle('hidden',!ns);$('#nsscn').textContent=ns?'· '+ns+' quote'+(ns===1?'':'s'):''}
+  var S=$('#fut');if(S){S.classList.toggle('hidden',!due.length&&!later.length);var ov=due.filter(function(r){return st[r].f<td}).length;
+    $('#futh').innerHTML=due.length?'<b>'+due.length+' to follow up today</b>'+(ov?' · <span class="fuoc">'+ov+' overdue</span>':'')+'. From your own notes; overdue first. Log what you did (a tap or a new note) and it leaves this list.':'<b>Nothing due today.</b> Your notes have scheduled the ones below; each comes back here on its day.';
+    var sc=$('#fuscl');if(sc)sc.innerHTML=later.map(function(r){var v=st[r],f=fuFind(x,r),nm=f?(f.c||f.p||f.m).name:'';return '<div class="fusr"><span class="chip">'+esc(FU.label(v.f,td))+'</span> <b>'+esc(nm||'(no first name)')+'</b> <span class="ref">'+esc(r)+'</span> <span class="small">· '+(v.k==='pc'?'past client':'quote')+' · '+(v.n?esc(v.n):'<i>(date only)</i>')+'</span></div>'}).join('');
+    var sd=$('#fusc');if(sd){sd.classList.toggle('hidden',!later.length);$('#fuscn').textContent=later.length}}
+  var O=$('#opps');if(O){var os=[].slice.call(O.querySelectorAll('.deal[data-ref]'));os.sort(function(a,b){function k(e){var v=st[e.dataset.ref],g=v&&v.g&&!cs.dnc[e.dataset.ref];return (g?(v.f<=td?'0'+v.f:'2'+v.f):'1')+'|'+String(1e4+ +e.dataset.oi)}return k(a)<k(b)?-1:1});os.forEach(function(e){O.appendChild(e)})}
+  fuPaint(x)}
+function fuRefreshAll(x){cbPcRender(x,false);fuRender(x);cbDealRender(x);if($('#actTotals')&&ACT_CUR)actRender(ACT_CUR)}
+function fuWire(){if(fuWire.on)return;fuWire.on=1;
+  document.addEventListener('input',function(ev){var b=ev.target.closest&&ev.target.closest('.fu');if(b&&ev.target.classList.contains('futx')){ev.target.style.height='auto';ev.target.style.height=Math.min(ev.target.scrollHeight,140)+'px';fuPreview(b)}});
+  document.addEventListener('focusin',function(ev){var b=ev.target.closest&&ev.target.closest('.fu');if(b){b.classList.add('fuopen');fuPreview(b)}});
+  document.addEventListener('focusout',function(ev){var b=ev.target.closest&&ev.target.closest('.fu');if(b)setTimeout(function(){fuPreview(b)},150)});
+  document.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&!ev.shiftKey&&ev.target.classList&&ev.target.classList.contains('futx')){ev.preventDefault();var b=ev.target.closest('.fu');if(b)fuSaveBtn(b)}});
+  document.addEventListener('change',function(ev){if(!ev.target.classList||!ev.target.classList.contains('fudt'))return;var b=ev.target.closest('.fu');if(!b)return;if(ev.target.value){b.dataset.ov=ev.target.value;b.dataset.ovc=''}else{delete b.dataset.ov;delete b.dataset.ovc}fuPreview(b)});
+  document.addEventListener('click',function(ev){var t=ev.target.closest&&ev.target.closest('.fuc,.fusv,.fumic');if(!t)return;var b=t.closest('.fu');if(!b)return;
+    if(t.classList.contains('fuc')){ev.preventDefault();if(b.dataset.ovc===t.dataset.c){delete b.dataset.ov;delete b.dataset.ovc}else{b.dataset.ovc=t.dataset.c;b.dataset.ov=t.dataset.c==='none'?'none':FU.chip(t.dataset.c,fuToday())}var dt=b.querySelector('.fudt');if(dt)dt.value=b.dataset.ov&&b.dataset.ov!=='none'?b.dataset.ov:'';fuPreview(b);return}
+    if(t.classList.contains('fusv')){ev.preventDefault();fuSaveBtn(b);return}
+    if(t.classList.contains('fumic')&&!t.dataset.w){t.dataset.w=1;cbDictate(t,b.querySelector('.futx'),b.querySelector('.fupv'),function(){fuPreview(b)});if(t.onclick)t.onclick()}})}
+function fuSaveBtn(b){var x=CB_X;if(!x)return;if(b.closest('#cbsheet')&&CB_SHEET){var s=CB_SHEET;if(s.held){cbCommit(x,s.id);s.held=false}var r=fuSave(x,b,s.t);if(r){fuRefreshAll(x);cbClose();toast(r.msg)}return}fuSave(x,b)}
+/* owner: follow-ups due / overdue / scheduled per designer (recomputed with the real date from each designer's notes) */
+function fuOwner(){var td=fuToday(),rows=(D.designers||[]).map(function(x){var st=fuState(x),c={name:x.name,slug:x.slug,due:0,over:0,later:0,top:null};
+    Object.keys(st).forEach(function(r){var v=st[r];if(!v.g)return;var s=FU.status(v.f,td);c[s==='over'?'over':s==='due'?'due':'later']++;if(s!=='later'&&(!c.top||v.f<c.top.f))c.top=v});return c}).filter(function(c){return c.due||c.over||c.later});
+  rows.sort(function(a,b){return (b.over-a.over)||(b.due-a.due)||(b.later-a.later)});var to=0,tu=0;rows.forEach(function(r){to+=r.over;tu+=r.due});
+  return '<div class="card"><b>📌 Follow-ups by designer</b> <span class="small">from the result / next-step notes designers save on their cards · tap a row to open the page</span>'+
+  (rows.length?'<div class="tw" style="margin-top:8px"><table><thead><tr><th>Designer</th><th>Due today</th><th>Overdue</th><th>Scheduled ahead</th><th>Oldest due note</th></tr></thead><tbody>'+rows.map(function(r){return '<tr class="click" data-s="'+r.slug+'"><td>'+esc(r.name)+'</td><td class="neu">'+r.due+'</td><td class="'+(r.over?'fuoc':'neu')+'">'+r.over+'</td><td>'+r.later+'</td><td class="small">'+(r.top?esc(FU.label(r.top.f,td))+': '+esc(String(r.top.n||'').slice(0,60)):'–')+'</td></tr>'}).join('')+'</tbody></table></div>'+
+   '<p class="fine" style="margin:6px 0 0">'+tu+' due today · '+to+' overdue across the team. Overdue = the date in the designer\'s note has passed and nothing was logged on that record since. Notes never count as contacts.</p>'
+   :'<p class="small" style="margin:6px 0 0">No follow-up notes yet. When a designer saves a result / next step on a card, it shows here after the next activity sync.</p>')+'</div>'}
+function fuSection(x){if(!x.ns)return'';return '<section class="sec hidden" id="fut"><h2>📌 Follow up today</h2><div class="card fucard"><p class="small" id="futh" style="margin:0 0 8px"></p><div id="ful"></div>'+
+  '<details id="fusc" class="hidden"><summary class="small"><b>📅 Scheduled by your notes (<span id="fuscn">0</span>)</b></summary><div id="fuscl"></div><p class="fine">Each one comes back here on its date. A new note or a tap on that record replaces the date.</p></details></div></section>'}

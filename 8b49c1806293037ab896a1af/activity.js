@@ -79,7 +79,8 @@ function monday(d){var x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.se
 function sum(es){var t={};CATS.forEach(function(c){t[c.k]=0});es.forEach(function(e){CATS.forEach(function(c){t[c.k]+=+(e.c[c.k]||0)})});return t}
 function touches(t){return t.calls+t.texts+t.followups}
 var DNC_RX=/^\s*\[pc\]\s*past client\s*#[A-Za-z0-9]{4,18}\s*-\s*do not contact\b/i;   /* Don't contact rows (Oct 22, 2026): 0 counts, never a day logged */
-function stats(es,now){now=now||new Date();es=es.filter(function(e){return !DNC_RX.test(e.note||'')});var td=ymd(now),wk=ymd(monday(now)),mo=td.slice(0,8);
+var NOTE_RX=/^\s*\[(pc|deal)\]\s*(past client|opp)\s*#[A-Za-z0-9]{4,18}\s*-\s*note\s*\[fu\s/i;   /* follow-up notes (Oct 25, 2026): 0 counts, never a day logged */
+function stats(es,now){now=now||new Date();es=es.filter(function(e){return !DNC_RX.test(e.note||'')&&!NOTE_RX.test(e.note||'')});var td=ymd(now),wk=ymd(monday(now)),mo=td.slice(0,8);
   var T=es.filter(function(e){return e.d===td}),W=es.filter(function(e){return e.d>=wk&&e.d<=td}),M=es.filter(function(e){return e.d.slice(0,8)===mo&&e.d<=td});
   var days={};es.forEach(function(e){days[e.d]=1});var dw=Object.keys(days).filter(function(d){return d>=wk&&d<=td}).length,dm=Object.keys(days).filter(function(d){return d.slice(0,8)===mo&&d<=td}).length;
   var st=0,c=new Date(now.getFullYear(),now.getMonth(),now.getDate());if(!days[ymd(c)])c.setDate(c.getDate()-1);                 /* today not logged yet: streak still counts through yesterday */
@@ -126,7 +127,7 @@ function syncAll(F,back){F=F||getForm();if(!F)return;var slugs=[];try{for(var i=
   slugs.forEach(function(sl){sync(sl,F,function(ch){if(ch&&back)back(sl)})})}
 function pending(es){return es.filter(function(e){return e.s==='pending'}).length}
 function speechOK(){return typeof window!=='undefined'&&!!(window.SpeechRecognition||window.webkitSpeechRecognition)}
-return{CAP:CAP,mask:mask,scriptCut:scriptCut,DNC_RX:DNC_RX,CATS:CATS,countsStr:countsStr,payload:payload,sync:sync,syncAll:syncAll,setForm:setForm,getForm:getForm,pending:pending,parse:parse,stats:stats,summary:summary,touches:touches,load:load,save:save,ymd:ymd,speechOK:speechOK}})();
+return{CAP:CAP,mask:mask,scriptCut:scriptCut,DNC_RX:DNC_RX,NOTE_RX:NOTE_RX,CATS:CATS,countsStr:countsStr,payload:payload,sync:sync,syncAll:syncAll,setForm:setForm,getForm:getForm,pending:pending,parse:parse,stats:stats,summary:summary,touches:touches,load:load,save:save,ymd:ymd,speechOK:speechOK}})();
 if(typeof module!=='undefined')module.exports=ACT;
 /* retry pending entries on page load and whenever the browser comes back online (app.js re-renders via ACT_ONSYNC) */
 if(typeof window!=='undefined'&&window.addEventListener){var actRetry=function(){ACT.syncAll(null,function(sl){if(typeof window.ACT_ONSYNC==='function')window.ACT_ONSYNC(sl)})};

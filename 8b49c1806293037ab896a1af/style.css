@@ -219,3 +219,26 @@ details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:
 .nsd.tch.open>.ct{display:flex}
 .fdl{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;margin:3px 0}
 .ct.cti{display:inline-flex;margin-top:0;font-size:13px}
+/* follow-up notes (Oct 25, 2026): one "Result / next step" box on every record; pinned "Follow up today" (overdue amber, never green) */
+.fu{margin-top:8px;min-width:0}.fulast{font-size:13px;color:#333;margin:0 0 6px;overflow-wrap:anywhere}.fulast .chip{white-space:normal}
+.fulast.fuo{background:var(--abg);border:1px solid #f1dca8;border-radius:10px;padding:6px 8px}.fun{color:#333}
+.chip.fud{background:#e8f0fd;color:var(--navy);border-color:#c7d7f5}
+.furow{display:flex;gap:6px;align-items:flex-end;min-width:0}
+.futx{flex:1 1 auto;min-width:0;min-height:44px;max-height:140px;resize:none;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:16px;line-height:1.35;background:#fff;color:var(--ink)}
+.futx:focus{outline:2px solid #c7d7f5;border-color:var(--blue)}
+.furow .mic.sm{width:44px;height:44px;min-width:44px;font-size:19px;box-shadow:none}.fusv{min-height:44px;padding:0 14px;flex:0 0 auto}
+.fumore{display:none}.fu.fuopen .fumore{display:block}
+.fupv{font-size:13px;margin:6px 0 4px;color:var(--ink);overflow-wrap:anywhere}
+.fuch{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fuc{border:1px solid var(--line);background:var(--soft);border-radius:999px;padding:6px 11px;font:inherit;font-size:13px;min-height:34px;cursor:pointer;color:var(--ink)}
+.fuc.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.fudt{border:1px solid var(--line);border-radius:10px;padding:5px 8px;font:inherit;font-size:14px;min-height:34px;max-width:100%;background:#fff;color:var(--ink)}
+.fufold>summary{cursor:pointer;font-size:13px;color:var(--navy);font-weight:600;padding:6px 0;list-style:none}.fufold>summary::-webkit-details-marker{display:none}
+.fufold[open]>summary{margin-bottom:4px}
+.fdl .fu{margin:4px 0 8px}
+#ful .nsd.fuover{border-left:5px solid var(--amb);background:#fffaf0}#ful .nsd.fudue{border-left:5px solid var(--navy)}
+.fucard{border-left:5px solid var(--navy)}.fuoc{color:var(--amb)!important;font-weight:700}
+.fusr{padding:7px 0;border-top:1px solid var(--line);font-size:14px;overflow-wrap:anywhere}.fusr:first-child{border-top:0}.fusr .ref{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--mut)}
+.nstd.nssc{border-color:#c7d7f5;background:#f2f6fd}
+.cbfu{margin-top:6px;color:var(--ink)}#cbBox .fu{margin-top:6px}#cbBox .fusv{width:auto}
+.nsd.tch.open>.fu{display:block}
