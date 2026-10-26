@@ -724,7 +724,7 @@ function fuFind(x,ref){var N=x.ns||{},a=[].concat(N.fu_recs||[],N.past||[],N.pas
   var ds=N.deals||[];for(i=0;i<ds.length;i++)if(ds[i].ref===ref)return{k:'deal',p:ds[i]};
   var o=(x.deals||[]).concat.apply(x.deals||[],(x.focus||[]).map(function(f){return f.deals||[]}));for(i=0;i<o.length;i++)if(o[i].ref===ref)return{k:'deal',m:o[i]};return null}
 function fuBox(kind,ref,fold){return '<div class="fu" data-kind="'+kind+'" data-ref="'+esc(ref)+'"><div class="fulast hidden"></div>'+(fold?'<details class="fufold"><summary>📝 Result / next step</summary>':'')+
-  '<div class="furow"><textarea class="futx" rows="1" maxlength="400" enterkeyhint="done" autocapitalize="sentences" aria-label="Result and next step" placeholder="Result / next step, e.g. \'call back Friday\' or \'follow up in 2 weeks\'"></textarea><button type="button" class="mic sm fumic" aria-label="Tap and speak">🎤</button><button type="button" class="btn fusv">Save</button></div>'+
+  '<div class="furow"><textarea class="futx" rows="1" maxlength="400" enterkeyhint="done" autocapitalize="sentences" aria-label="Result and next step" placeholder="Result / next step…"></textarea><button type="button" class="mic sm fumic" aria-label="Tap and speak">🎤</button><button type="button" class="btn fusv">Save</button></div>'+
   '<div class="fumore"><div class="fupv"></div><div class="fuch">'+FU.CHIPS.map(function(c){return '<button type="button" class="fuc" data-c="'+c[1]+'">'+c[0]+'</button>'}).join('')+'<input type="date" class="fudt" aria-label="Pick a follow-up date"></div></div>'+(fold?'</details>':'')+'</div>'}
 function fuMini(x,ref,m){return '<div class="nsd fum" data-fref="'+esc(ref)+'"><div class="top"><span><b>'+esc(m.name||'(no first name)')+'</b> <span class="ref">'+esc(ref)+'</span></span><span class="amt">'+m0(m.usd||0)+'</span></div>'+ctLine(m)+
   '<div class="small nsm">Open quote'+(m.stage?' · '+esc(m.stage):'')+(m.src?' · '+esc(m.src):'')+'</div>'+cbBtns('deal',ref)+fuBox('deal',ref)+'</div>'}
@@ -733,7 +733,7 @@ function fuPick(box){var ov=box.dataset.ov||'',k=box.dataset.kind,t=cbMask(box.q
 function fuPreview(box){var pv=box.querySelector('.fupv'),tx=box.querySelector('.futx'),td=fuToday(),has=!!tx.value.trim()||!!box.dataset.ov;
   box.classList.toggle('fuopen',has||box.contains(document.activeElement));
   [].forEach.call(box.querySelectorAll('.fuc'),function(b){b.classList.toggle('on',(box.dataset.ovc||'')===b.dataset.c)});
-  if(!has){pv.innerHTML='<span class="fine">Say or type what happened and when to follow up, or pick a date:</span>';return}
+  if(!has){pv.innerHTML='<span class="fine">Say or type what happened and when, e.g. "call back Friday" or "follow up in 2 weeks". Or pick a date:</span>';return}
   var p=fuPick(box),w=p.d?'<b>Next follow-up: '+esc(FU.label(p.d,td))+'</b> <span class="fine">('+esc(FU.rel(p.d,td))+')</span>':'<b>No follow-up date</b>';
   pv.innerHTML=w+' <span class="fine">'+(p.src==='chip'?'· you picked it':p.src==='parsed'?'· from your note':p.src==='default'?'· nothing in the note says when, so '+esc(p.why)+'. Pick a date to change it.':p.src==='none'?'· '+esc(p.why||'')+'. Pick a date if you want one.':'')+'</span>'}
 function fuEntry(x,kind,ref,d,text,at){var F=D.meta.activity_form,e={id:Date.now()+'-'+Math.random().toString(36).slice(2,7),d:ACT.ymd(at),t:+at,c:{},note:FU.note(kind,ref,d,text,at),cb:kind,fu:1};
@@ -754,7 +754,7 @@ function fuPaint(x){var st=FU_CUR,td=fuToday();document.querySelectorAll('.fu[da
     if(!ACT.speechOK()){var m=b.querySelector('.fumic');if(m)m.classList.add('hidden')}fuPreview(b)})}
 function fuSort(st,refs){return refs.sort(function(a,b){var x=st[a],y=st[b];return x.f<y.f?-1:x.f>y.f?1:(x.d+x.h<y.d+y.h?-1:1)})}
 function fuRender(x){var st=fuState(x),td=fuToday(),cs=cbState(x),due=[],later=[];FU_CUR=st;var F=$('#ful');
-  Object.keys(st).forEach(function(r){var v=st[r];if(!v.g||cs.dnc[r])return;(v.f<=td?due:later).push(r)});fuSort(st,due);fuSort(st,later);
+  Object.keys(st).forEach(function(r){var v=st[r];if(!v.g||cs.dnc[r]||!fuFind(x,r))return;(v.f<=td?due:later).push(r)});fuSort(st,due);fuSort(st,later);   /* no card = sold, lost or blocked since: skip */
   var NL=$('#nsl'),SL=$('#nssl'),dueS={},latS={};due.forEach(function(r){dueS[r]=1});later.forEach(function(r){latS[r]=1});
   if(F){[].slice.call(F.children).forEach(function(el){var r=el.dataset.ref||el.dataset.pref||el.dataset.fref;if(dueS[r])return;
       if(el.dataset.ref&&NL){el.classList.remove('fuover','fudue');NL.appendChild(el)}else el.remove()});
@@ -784,9 +784,9 @@ function fuWire(){if(fuWire.on)return;fuWire.on=1;
 function fuSaveBtn(b){var x=CB_X;if(!x)return;if(b.closest('#cbsheet')&&CB_SHEET){var s=CB_SHEET;if(s.held){cbCommit(x,s.id);s.held=false}var r=fuSave(x,b,s.t);if(r){fuRefreshAll(x);cbClose();toast(r.msg)}return}fuSave(x,b)}
 /* owner: follow-ups due / overdue / scheduled per designer (recomputed with the real date from each designer's notes) */
 function fuOwner(){var td=fuToday(),rows=(D.designers||[]).map(function(x){var st=fuState(x),c={name:x.name,slug:x.slug,due:0,over:0,later:0,top:null};
-    Object.keys(st).forEach(function(r){var v=st[r];if(!v.g)return;var s=FU.status(v.f,td);c[s==='over'?'over':s==='due'?'due':'later']++;if(s!=='later'&&(!c.top||v.f<c.top.f))c.top=v});return c}).filter(function(c){return c.due||c.over||c.later});
+    Object.keys(st).forEach(function(r){var v=st[r];if(!v.g||!fuFind(x,r))return;var s=FU.status(v.f,td);c[s==='over'?'over':s==='due'?'due':'later']++;if(s!=='later'&&(!c.top||v.f<c.top.f))c.top=v});return c}).filter(function(c){return c.due||c.over||c.later});
   rows.sort(function(a,b){return (b.over-a.over)||(b.due-a.due)||(b.later-a.later)});var to=0,tu=0;rows.forEach(function(r){to+=r.over;tu+=r.due});
-  return '<div class="card"><b>📌 Follow-ups by designer</b> <span class="small">from the result / next-step notes designers save on their cards · tap a row to open the page</span>'+
+  return '<div class="card" id="furoll"><b>📌 Follow-ups by designer</b> <span class="small">from the result / next-step notes designers save on their cards · tap a row to open the page</span>'+
   (rows.length?'<div class="tw" style="margin-top:8px"><table><thead><tr><th>Designer</th><th>Due today</th><th>Overdue</th><th>Scheduled ahead</th><th>Oldest due note</th></tr></thead><tbody>'+rows.map(function(r){return '<tr class="click" data-s="'+r.slug+'"><td>'+esc(r.name)+'</td><td class="neu">'+r.due+'</td><td class="'+(r.over?'fuoc':'neu')+'">'+r.over+'</td><td>'+r.later+'</td><td class="small">'+(r.top?esc(FU.label(r.top.f,td))+': '+esc(String(r.top.n||'').slice(0,60)):'–')+'</td></tr>'}).join('')+'</tbody></table></div>'+
    '<p class="fine" style="margin:6px 0 0">'+tu+' due today · '+to+' overdue across the team. Overdue = the date in the designer\'s note has passed and nothing was logged on that record since. Notes never count as contacts.</p>'
    :'<p class="small" style="margin:6px 0 0">No follow-up notes yet. When a designer saves a result / next step on a card, it shows here after the next activity sync.</p>')+'</div>'}
