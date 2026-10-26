@@ -453,7 +453,8 @@ var NS_RULES=[['Note says signed','Confirm the paperwork and move to Sold (Desig
  ['Note mentions timing/project','Agree a dated decision; mention this month\'s showroom special','SPIN implication; honest urgency only'],
  ['Quote under 30 days, no dated step','Book the showroom review visit (24-72 h, day 7, day 14 rhythm)','HBR lead-response research; 24-72-7-14'],
  ['No dated note 14+ days','Call with a reason: the showroom invite; the goal is a firm appointment, not a sale on the call','24-72-7-14 rhythm; Rackham "advance"'],
- ['Appointment 90+ days ago, quiet','Re-open with an updated design. Aged quotes are still winnable: they got old because the follow-up stopped','Rackham "advance"']];
+ ['Appointment 90+ days ago, quiet','Re-open with an updated design. Aged quotes are still winnable: they got old because the follow-up stopped','Rackham "advance"'],
+ ['ClosetWare project type is Garage','Texts and talking points say "the space we designed for you" instead of naming a garage, unless the booking note clearly names one room; next-room ideas do not assume a garage','ClosetWare often uses Garage as a placeholder (service coordinator, Oct 26)']];
 var NS_F={},NS_APPLY=null;
 /* Past-client texting do's and don'ts (Andrew, Oct 22, 2026; modeled on the past-client text a CFNJ designer shared in the Design Team chat). Sources: playbook s.15. */
 var NS_DOS=[['do','Personalize: their first name, their project, from you. Lead with the relationship, not the pitch.','Reichheld, HBR 2003; HBR 2014 on keeping customers'],
@@ -486,11 +487,15 @@ function nsCard(p,T){var tod=p.due===T,dc='';
   return '<div class="nsd" data-k="'+p.k+'" data-due="'+(tod?1:0)+'" data-sr="'+(p.showroom?1:0)+'" data-lw="'+(p.lowes?1:0)+'" data-usd="'+p.usd+'" data-i="'+p.i+'" data-ref="'+esc(p.ref)+'">'+
   '<div class="top"><span><input type="checkbox" class="nsdone" aria-label="done"> <b>'+nsWho(p)+'</b> <span class="ref">'+esc(p.ref)+'</span></span><span class="amt">'+m0(p.usd)+'</span></div>'+ctLine(p)+
   '<div class="nsa"><span class="chip '+dc+'">'+(tod?'Due today':'By '+esc(p.due_l))+'</span><b>'+esc(p.label)+'</b></div>'+
-  '<div class="small nsm">'+esc(p.room)+' · '+esc(p.stage)+' · '+esc(p.src)+(p.chips||[]).map(function(c){return ' <span class="chip '+(c==='showroom upgrade'?'g':'')+'">'+esc(c)+'</span>'}).join('')+'</div>'+
+  '<div class="small nsm">'+esc(p.room)+' · '+esc(p.stage)+' · '+esc(p.src)+(p.chips||[]).map(function(c){return ' <span class="chip '+(c==='showroom upgrade'?'g':'')+'">'+esc(c)+'</span>'}).join('')+'</div>'+gphHint(p)+
   '<div class="why small"><b>Why:</b> '+p.why.map(esc).join(' · ')+'</div>'+
   '<div class="nss"><span>'+esc(p.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>'+cbBtns('deal',p.ref)+fuBox('deal',p.ref)+'</div>'}
+/* Garage placeholder (Andrew, Oct 26, 2026): ClosetWare's "Garage" project type is often a catch-all, so cards whose type is Garage carry
+   this hint; their scripts are neutral unless the booking note clearly names one room (nextsteps.py room_for). */
+var GPH_NOTE='ClosetWare often shows Garage as a placeholder project type. Check your own records before mentioning a specific room.';
+function gphHint(c){return c&&c.gph?'<div class="fine gph">⚠️ '+GPH_NOTE+'</div>':''}
 function pcCard(c,P){return '<div class="nsd pc" data-pref="'+esc(c.ref)+'"><div class="top"><span><b>'+nsWho(c)+'</b> <span class="ref">'+esc(c.ref)+'</span></span><span class="amt">'+m0(c.usd)+'</span></div>'+ctLine(c)+
-    '<div class="small nsm">'+esc(c.rooms.join(', '))+' · sold '+esc(c.sold)+(c.n>1?' · '+c.n+' projects':'')+' '+c.tags.map(function(t){return '<span class="chip '+(t.indexOf('Lowe')===0?'':'g')+'">'+esc(t)+'</span>'}).join('')+'</div>'+
+    '<div class="small nsm">'+esc(c.rooms_d||c.rooms.join(', '))+' · sold '+esc(c.sold)+(c.n>1?' · '+c.n+' projects':'')+' '+c.tags.map(function(t){return '<span class="chip '+(t.indexOf('Lowe')===0?'':'g')+'">'+esc(t)+'</span>'}).join('')+'</div>'+gphHint(c)+
     '<div class="why small"><b>Why this person:</b> '+esc(c.why)+(c.fit?' <span class="chip">'+esc(c.fit)+'</span>':'')+'</div>'+
     (c.text?'<div class="small nslab"><b>📱 Text (ready to send)</b></div><div class="nss nstx"><span>'+esc(c.text)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>':'')+
     (c.lowes&&P.lowes.terms_note?'<div class="fine nslw">For you only, not in the text: '+esc(P.lowes.terms_note)+'</div>':'')+
@@ -510,7 +515,7 @@ function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N
   /* past clients */
   var pc=N.past||[],ph='';
   ph+=nsDos();
-  ph+='<div class="card"><p class="small" style="margin:0 0 8px">'+(pc.length?'<b>Past clients are your most important contacts right now.</b> Each one has a ready-to-send text (modeled on a past-client text that works on our team; put your own cell where it says [your cell]) and a short call version. These are your <span id="pcn">'+Math.min(10,pc.length)+'</span> best past clients to contact in October (from '+N.past_pool+' sold clients since Jan 2025, 60+ days after the sale), best opportunity first. No contact details here: look them up in ClosetWare by the record number.':'No past clients in the window (sold Final since Jan 2025, 60+ days ago).')+'</p>'+
+  ph+='<div class="card"><p class="small" style="margin:0 0 8px">'+(pc.length?'<b>Past clients are your most important contacts right now.</b> Each one has a ready-to-send text (modeled on a past-client text that works on our team; put your own cell where it says [your cell]) and a short call version. <b>Room names:</b> '+GPH_NOTE+' These are your <span id="pcn">'+Math.min(10,pc.length)+'</span> best past clients to contact in October (from '+N.past_pool+' sold clients since Jan 2025, 60+ days after the sale), best opportunity first. No contact details here: look them up in ClosetWare by the record number.':'No past clients in the window (sold Final since Jan 2025, 60+ days ago).')+'</p>'+
    (pc.length?'<p class="small cbhelp"><b>After you reach out, tap what you did</b> (💬 Texted · 📞 Called · 🏠 Visited · ✉️ Emailed). It is logged in your activity and sent to Andrew, that client leaves your list for '+(N.pc_quiet||60)+' days and the next best past client moves up. Changed your mind? Tap Undo within 5 seconds. Someone who must never hear from us again? Tap <b>🚫 Don\'t contact</b>: they leave every designer\'s list for good (Andrew can restore them).</p>':'')+
    '<div id="pcl"></div><p class="small hidden" id="pcend"></p>'+
    '<p class="fine">Ask every happy client for a referral; enter any lead they give you as designer-created. Installed is estimated (sold Final 60+ days ago; install lead time runs 40-60 days).</p></div>';
