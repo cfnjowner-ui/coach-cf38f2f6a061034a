@@ -243,3 +243,9 @@ details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:
 .cbfu{margin-top:6px;color:var(--ink)}#cbBox .fu{margin-top:6px}#cbBox .fusv{width:auto}
 .nsd.tch.open>.fu{display:block}
 .gph{margin-top:3px;color:#7a5a00}
+/* clients from designers no longer here (Oct 28, 2026) */
+.inb{margin:6px 0;padding:6px 8px;background:#f3f8f5;border-radius:8px}
+.inb .inm{margin-top:4px}
+.inh summary{cursor:pointer;margin-top:4px}
+.int{margin-top:4px;font-size:12px}
+.int .inr{padding:2px 0;border-bottom:1px solid #e3e8ee}
