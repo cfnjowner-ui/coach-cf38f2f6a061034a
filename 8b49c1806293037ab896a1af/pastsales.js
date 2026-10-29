@@ -24,7 +24,23 @@ function psRow(s,i){var tags=(s.nc?'<span class="chip r">Do not contact</span>':
   return '<li class="psr'+(s.nc?' psnc':'')+'" data-i="'+i+'" tabindex="0"><div class="pst"><b class="psn">'+esc(s.name||'(no name)')+'</b><b class="psa">'+m0(s.a)+'</b></div>'+
     '<div class="psm"><span>'+psDate(s.d)+'</span>'+tags+(s.la!=null?'<span class="psgo" title="Show on map">📍</span>':'<span class="ctn" title="No usable address/coordinates">not on map</span>')+'</div>'+
     '<div class="psad">'+esc(psAddr(s)||'no address on file')+'</div>'+(ct?'<div class="psct">'+ct+'</div>':'')+'</li>'}
-function psOpen(x){PS.x=x;var M=document.getElementById('psModal');if(M)M.remove();
+/* Owner view (Andrew, Oct 29, 2026, 3:06 PM ET: "when I (owner) click the button on each designer page, I see what they see"): the owner
+   bundle carries no client rows; each designer's rows sit in their own owner-encrypted file under p/ (encrypt.write_owner_ps), fetched and
+   decrypted on the first click only, kept in memory for this visit, never stored. Same rows/DNC handling as the designer's own page. */
+var PS_OWN={};
+async function psOwnerLoad(slug){if(PS_OWN[slug])return PS_OWN[slug];if(!PSK)throw new Error('nokey');var f,r,blob,d;
+  if(PSK.v===2){f=hex(await h256(PSK.m,'|cfnj-ps-fid|'+slug)).slice(0,24)}else{var P=PSK.c+'|ps|'+slug;f=hex(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('cfnj-coach-ps|'+P)))).slice(0,24)}
+  try{r=await fetch('p/'+f+'.json',{cache:'no-store'})}catch(e){throw NetErr()}if(r.status===404)throw new Error('none');if(!r.ok)throw NetErr();blob=await r.json();
+  if(PSK.v===2){var k=await crypto.subtle.importKey('raw',await h256(PSK.m,'|cfnj-ps-key|'+slug),{name:'AES-GCM'},false,['decrypt']);
+    d=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(blob.iv)},k,b64(blob.ct))))}
+  else d=await decrypt(blob,PSK.c+'|ps|'+slug);
+  if(!d||d.slug!==slug)throw new Error('mismatch');PS_OWN[slug]=d;return d}
+function psOpen(x){if(D.kind==='owner'&&!(x.ps&&x.ps.length)&&PSK&&!x._psTried){var M0=document.getElementById('psModal');if(M0)M0.remove();
+    var W=document.createElement('div');W.id='psModal';W.className='psmod';W.innerHTML='<div class="psbox"><div class="pshd"><div><b class="psttl">My past Sales</b><div class="fine">'+esc(x.name)+' · owner view</div></div><button type="button" class="psx" id="psX" aria-label="Close">✕</button></div><div class="psbody psempty"><p>Opening '+esc(x.name)+'\'s past sales…</p></div></div>';
+    document.body.appendChild(W);W.querySelector('#psX').onclick=function(){W.remove()};
+    psOwnerLoad(x.slug).then(function(d){var v=Object.assign({},x,{ps:d.ps,ps_meta:d.ps_meta||x.ps_meta});W.remove();psOpen(v)},
+      function(e){x._psTried=e&&e.kind==='net'?false:true;W.remove();psOpen(Object.assign({},x,{_psTried:true,_psErr:e&&e.kind==='net'?'Could not reach the page (no connection?). Close and try again.':'This designer has no past sales on record.'}))});return}
+  PS.x=x;var M=document.getElementById('psModal');if(M)M.remove();
   var own=D.kind==='owner',has=!!(x.ps&&x.ps.length),ow=own&&D.owner&&D.owner.ps&&(D.owner.ps.designers||[]).find(function(z){return z.slug===x.slug});
   M=document.createElement('div');M.id='psModal';M.className='psmod';M.setAttribute('role','dialog');M.setAttribute('aria-modal','true');M.setAttribute('aria-label','My past Sales');
   M.innerHTML='<div class="psbox"><div class="pshd"><div><b class="psttl">My past Sales</b><div class="fine" id="psSub"></div></div><button type="button" class="psx" id="psX" aria-label="Close">✕</button></div>'+
@@ -32,13 +48,13 @@ function psOpen(x){PS.x=x;var M=document.getElementById('psModal');if(M)M.remove
       '<div class="pssum" id="psSum" aria-live="polite"></div><div class="pssrt"><span class="fine">Sort</span><button type="button" data-s="d">Newest</button><button type="button" data-s="a">$ high→low</button></div>'+
       '<div class="pstabs" role="tablist"><button type="button" data-t="list">List</button><button type="button" data-t="map">Map</button></div></div>'+
       '<div class="psbody"><ul class="pslist" id="psList"></ul><div class="psmapw"><div id="psMap" class="psmap"></div><div class="fine psmn" id="psMn"></div></div></div>'
-    :'<div class="psbody psempty"><p>'+(own?'Client-level past sales are only inside each designer\'s own page (encrypted with their code), not in the owner bundle.'+(ow?' '+esc(x.name)+': '+ow.n+' sales on record, '+ow.mapped+' on the map, '+ow.y12+' in the past year.':''):'No sales on record yet. Your sales will show here once they are Sold in ClosetWare.')+'</p></div>')+'</div>';
+    :'<div class="psbody psempty"><p>'+(own?esc(x._psErr||'Past sales could not be opened here.')+(ow?' '+esc(x.name)+': '+ow.n+' sales on record, '+ow.mapped+' on the map, '+ow.y12+' in the past year.':''):'No sales on record yet. Your sales will show here once they are Sold in ClosetWare.')+'</p></div>')+'</div>';
   document.body.appendChild(M);document.body.classList.add('psopen');
   var close=function(){M.remove();document.body.classList.remove('psopen');document.removeEventListener('keydown',esck);if(PS.map){PS.map.remove();PS.map=null}var b=document.getElementById('psBtn');if(b)b.focus()};
   var esck=function(e){if(e.key==='Escape')close()};document.addEventListener('keydown',esck);
   M.querySelector('#psX').onclick=close;M.onclick=function(e){if(e.target===M)close()};M.querySelector('#psX').focus();
   if(!has)return;
-  var pm=x.ps_meta||{};M.querySelector('#psSub').textContent=(x.ps.length+' sales since '+psDate(pm.first)+' · ClosetWare, read-only · as of '+psDate(pm.asof));
+  var pm=x.ps_meta||{};M.querySelector('#psSub').textContent=((own?x.name+' (owner view) · ':'')+x.ps.length+' sales since '+psDate(pm.first)+' · ClosetWare, read-only · as of '+psDate(pm.asof));
   M.querySelectorAll('.psper button').forEach(function(b){b.onclick=function(){PS.per=b.dataset.p;psDraw()}});
   M.querySelectorAll('.pssrt button').forEach(function(b){b.onclick=function(){PS.sort=b.dataset.s;psDraw()}});
   M.querySelectorAll('.pstabs button').forEach(function(b){b.onclick=function(){psTab(b.dataset.t)}});

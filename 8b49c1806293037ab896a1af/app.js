@@ -1,6 +1,6 @@
 /* CFNJ Designer Coach. Static, private: data files are AES-256-GCM encrypted. Published site (kdf.json present, v2): ONE slow PBKDF2 (3,000,000 iterations, site salt) of the access code gives both the AES key and the file name, so file names never reveal a code. Local preview (no kdf.json, v1): SHA-256 file name + per-file PBKDF2. */
 'use strict';
-var D=null, CUR=null;
+var D=null, CUR=null, PSK=null;   /* PSK: owner key material kept in memory only (never stored), used solely to open the owner's per-designer My past Sales files (pastsales.js) */
 var $=function(s){return document.querySelector(s)};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function b64(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
@@ -39,8 +39,8 @@ async function openM(m){var f=hex(await h256(m,'|cfnj-fid')).slice(0,24),r;     
   return JSON.parse(new TextDecoder().decode(pt))}
 async function unlock(code,rem){code=canon(code);var K=await kdf();
   if(K&&K.v===2){var m=await master2(code,K),d;try{d=await openM(m)}catch(e){if(e.kind==='net')throw e;throw new Error('nf')}
-    if(rem)remSet({v:2,fp:await saltFp(K),m:b64e(m),at:new Date().toISOString().slice(0,10)});else remClear();return d}
-  var f=await sha(code),r;try{r=await fetch('d/'+f+'.json',{cache:'no-store'})}catch(e){throw NetErr()}if(!r.ok)throw new Error('nf');return decrypt(await r.json(),code)}   /* local v1 preview: not remembered */
+    if(rem)remSet({v:2,fp:await saltFp(K),m:b64e(m),at:new Date().toISOString().slice(0,10)});else remClear();PSK={v:2,m:m};return d}
+  var f=await sha(code),r;try{r=await fetch('d/'+f+'.json',{cache:'no-store'})}catch(e){throw NetErr()}if(!r.ok)throw new Error('nf');var d1=await decrypt(await r.json(),code);PSK={v:1,c:code};return d1}   /* local v1 preview: not remembered */
 function opening(on,msg){var o=$('#opening');if(!o)return;o.classList.toggle('hidden',!on);if(msg)$('#openmsg').textContent=msg}
 function lock(msg,retry){opening(false);$('#lock').classList.remove('hidden');$('#lockerr').textContent=msg||'';var rb=$('#retry');if(rb)rb.classList.toggle('hidden',!retry);if(!retry)$('#code').focus()}
 function standalone(){return window.navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)}
@@ -54,7 +54,7 @@ $('#btnOut').onclick=signOut;(function(){var l=$('#lnkOut');if(l)l.onclick=funct
   if(location.hash.indexOf('#k=')===0){var kk=decodeURIComponent(location.hash.slice(3));history.replaceState(null,'',location.pathname+location.search);opening(true,'Opening…');try{D=await unlock(kk,true);opening(false);return start()}catch(e){return lock(e&&e.kind==='net'?'Could not reach the page. Check your connection.':'That link did not work.',e&&e.kind==='net')}}
   var R=remGet();
   if(R){opening(true,'Opening…');try{var K=await kdf();if(!K||K.v!==2||R.fp!==await saltFp(K)){remClear();return lock('Please enter your code again.')}
-      D=await openM(b64(R.m));opening(false);return start()}
+      D=await openM(b64(R.m));PSK={v:2,m:b64(R.m)};opening(false);return start()}
     catch(e){if(e&&e.kind==='net')return lock('Could not reach the page (no connection?). This device is still remembered: tap Retry.',true);remClear();return lock('Your code has changed. Please enter your current code.')}}
   var c=null;try{c=localStorage.getItem(LS_OLD)}catch(e){}
   if(c){opening(true,'Opening… (one-time update, a few seconds)');try{D=await unlock(c,true);try{localStorage.removeItem(LS_OLD)}catch(e){}opening(false);return start()}
@@ -72,7 +72,7 @@ function copy(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.r
 function tile(k,v,s,c){return '<div class="tile"><div class="k">'+k+'</div><div class="v '+(c||'neu')+'">'+v+'</div>'+(s?'<div class="s">'+s+'</div>':'')+'</div>'}
 function sec(id,title,html){return '<section class="sec" id="'+id+'"><h2>'+title+'</h2>'+html+'</section>'}
 /* ── router ── */
-function start(){$('#btnOut').classList.remove('hidden');var so=$('#signout');if(so)so.classList.remove('hidden');ACT.setForm(D.meta.activity_form||null);ACT.syncAll(D.meta.activity_form,window.ACT_ONSYNC);$('#sub').textContent='Data as of '+D.meta.asof+' · '+D.meta.month;
+function start(){if(!D||D.kind!=='owner')PSK=null;$('#btnOut').classList.remove('hidden');var so=$('#signout');if(so)so.classList.remove('hidden');ACT.setForm(D.meta.activity_form||null);ACT.syncAll(D.meta.activity_form,window.ACT_ONSYNC);$('#sub').textContent='Data as of '+D.meta.asof+' · '+D.meta.month;
   if(D.kind==='designer'){document.body.classList.add('dview');$('#nav').innerHTML='';$('#ttl').textContent='My Coaching Page';route('d/'+D.designers[0].slug)}else{window.onhashchange=function(){route(location.hash.slice(1))};route(location.hash.slice(1)||'team')}}
 function nav(on){var t=[['team','Team'],['people','Designers'],['topics','Training topics'],['queue','Teams drafts'],['lib','Library'],['how','How it works']];
   $('#nav').innerHTML=t.map(function(x){return '<a href="#'+x[0]+'" class="'+(on===x[0]?'on':'')+'">'+x[1]+'</a>'}).join('')}
