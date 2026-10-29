@@ -89,7 +89,7 @@ function gtxt(h){if(h.basis==='none')return'No goal shown (on leave, no leads).'
 function designer(x){var s=x.snap,g=x.goal,n=x.notes,T=D.team,tm=T.mtd,M=D.meta,h='';
   if(D.kind==='owner')h+='<a class="back" href="#people">← All designers</a>';
   if(x.test)h+='<div class="card" style="border-left:5px solid #c47f00;background:#fff8e6"><b>🧪 TEST PAGE</b><p class="small" style="margin:6px 0 0">'+esc(x.test.label||x.name)+': a copy of '+esc(x.test.mirror||'a designer')+'\'s real page for testing. Activity entries saved here are sent to the Activity log Sheet with Designer = "'+esc(x.act_who||x.name)+'" so they are easy to filter and delete. Not counted in team totals.</p></div>';
-  h+='<div class="card hero"><div class="m">'+esc(M.month)+' · day '+M.day+' of '+M.dim+' · '+M.days_left+' days left</div><h2>'+esc(x.name)+'</h2><div class="m">Personal coaching page · coach, not judge: every number compares you fairly to the team for the leads you run.</div></div>';
+  h+='<div class="card hero"><div class="m">'+esc(M.month)+' · day '+M.day+' of '+M.dim+' · '+M.days_left+' days left</div><h2>'+esc(x.name)+'</h2><div class="m">Personal coaching page · coach, not judge: every number compares you fairly to the team for the leads you run.</div>'+psBtn(x)+'</div>';
   h+='<div class="minis"><a href="#wins">Wins</a><a href="#close">Close this month</a><a href="#pastc">Past clients</a><a href="#inact">Former designers&#39; clients</a><a href="#activity">My activity</a><a href="#snap">Snapshot</a><a href="#goal">Goal</a><a href="#notes">Next steps</a><a href="#focus">Focus</a><a href="#week">This week</a><a href="#learn">Library</a></div>';
   h+=fuSection(x);
   /* wins first */
@@ -175,6 +175,7 @@ function wire(x){var key='cfnj_coach_done_'+x.slug+'_'+D.meta.today,st={};try{st
   var c=$('#cp');if(c)c.onclick=function(){copy(x.message.text)};
   actWire(x);
   nsWire(x);
+  psWire(x);
   document.querySelectorAll('.minis a').forEach(function(a){a.onclick=function(e){e.preventDefault();var t=document.getElementById(a.getAttribute('href').slice(1));if(t)window.scrollTo({top:t.getBoundingClientRect().top+window.scrollY-110,behavior:'smooth'})}})}
 /* ── owner views ── */
 /* ── team goal panel: all roster designers vs personal goal and on-pace marker ── */
