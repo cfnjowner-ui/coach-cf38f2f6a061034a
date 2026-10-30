@@ -207,9 +207,20 @@ function goalPanel(){var O=D.owner,M=D.meta,ts=M.typ_share,near=M.cfg.PACE_NEAR,
   if(leave.length)h+='<p class="fine" style="margin:8px 0 0">'+(PL?'No October target on the Sales Board, so no goal shown: ':'On leave, no goal: ')+leave.map(function(r){return esc(r.name)+(PL&&r.no_target_why?' ('+esc(r.no_target_why)+')':'')}).join(', ')+'. Inactive designers are not on the roster. Color: green = at or above the path; black = near or too early to judge; red = behind by more than 10% of the plan since Oct 18'+(PL?'':' (personal-goal rows: more than 10% behind pace)')+'.</p>';
   return h+'</div>'}
 
+function nsCol(sc,n){return sc==null||(n!=null&&n<3)?'#999':sc>=75?'#0d7a45':sc>=50?'#b26b00':'#c62828'}
+function nsRings(){var O=D.owner,T=D.team,tn=T.notes,sc=Math.round(tn.score);
+  var rows=O.rows.filter(function(r){return r.nscore!=null&&r.live_n>0}).slice().sort(function(a,b){return a.nscore-b.nscore||b.live_usd-a.live_usd});
+  var none=O.rows.filter(function(r){return r.nscore==null||!r.live_n});
+  var fc={};O.rows.forEach(function(r){var f=r.name.split(' ')[0];fc[f]=(fc[f]||0)+1});
+  function fn(r){var p=r.name.split(' '),f=p[0];return fc[f]>1&&p.length>1?f+' '+p[p.length-1].charAt(0)+'.':f}
+  var big='<div class="gauge nsrbig"><div class="ring" style="--p:'+sc+';--c:'+nsCol(sc)+'"><div>'+sc+'</div></div><div><b>Team next-step compliance</b> <span class="small">0–100</span><div class="small">'+tn.n+' open opps · '+mk(tn.usd)+' covered'+(tn.pct_next!=null?' · '+pc(tn.pct_next)+' dated appt':'')+(tn.pct_stage!=null?' · '+pc(tn.pct_stage)+' right stage':'')+(tn.pct_fresh!=null?' · '+pc(tn.pct_fresh)+' fresh ≤14d':'')+'</div></div></div>';
+  var g='<div class="nsrg">'+rows.map(function(r){var s=Math.round(r.nscore),sm=r.live_n<3;return '<div class="nsr click" data-s="'+r.slug+'" title="'+esc(r.name)+(sm?' · small sample, not judged':'')+'"><div class="ring sm" style="--p:'+s+';--c:'+nsCol(s,r.live_n)+'"><div>'+s+'</div></div><div class="nsrn">'+esc(fn(r))+'</div><div class="nsrx">'+r.live_n+' open · '+mk(r.live_usd)+(sm?'<br><span class="nsrsm">small sample</span>':'')+'</div></div>'}).join('')+'</div>';
+  var nl=none.length?'<p class="small nsrnone">No open opps to score: '+none.map(function(r){return esc(fn(r))}).join(', ')+'.</p>':'';
+  return '<div class="card" id="nsrings"><b>📝 Next-step compliance roll-up</b> <span class="small">lowest first · tap a ring to open that page</span>'+big+g+nl+'<p class="fine">Same score and colors as each designer\'s ring: green 75+, amber 50–74, red under 50; gray = fewer than 3 open opps (too small to judge). Caption totals are the whole team; small rings count each roster designer\'s own open opps.</p></div>'}
 function team(){var O=D.owner,T=D.team,M=D.meta,t=O.tot,h='';
   h+='<div class="card hero"><div class="m">'+esc(M.month)+' · day '+M.day+' of '+M.dim+' · owner view (all designers)</div><h2>Team coaching roll-up</h2><div class="m">Positive first, then where help pays off most. Drafts only: nothing is sent.</div></div>';
   h+='<div id="gp">'+goalPanel()+'</div>';
+  h+=nsRings();
   h+=nsOwner();
   h+=actDash();
   h+=actOwnerCard();
@@ -219,7 +230,6 @@ function team(){var O=D.owner,T=D.team,M=D.meta,t=O.tot,h='';
     tile('Projected month-end',m0(t.proj),'roster designers · '+(M.plan?'October goal (Sales Board) '+m0(M.plan.month_goal):'month goal '+m0(M.goal)),M.plan?cls(t.proj,M.plan.month_goal,M.plan.month_goal*.03):cls(t.proj,M.goal,M.goal*.03))+
     tile('Close rate YTD',pc(T.ytd.rate),'corporate basis · lead-appt '+pc(T.ytd.lead_rate),'neu')+
     tile('Open opps w/ dated future appointment',pc(T.notes.pct_next),T.notes.n+' open opps · '+m0(T.notes.usd),T.notes.pct_next<.5?'neg':'neu')+
-    tile('Next-step compliance (team)',Math.round(T.notes.score),'0–100 · correct stage '+pc(T.notes.pct_stage)+' · fresh ≤14d '+pc(T.notes.pct_fresh),T.notes.score<50?'neg':'neu')+
     tile('Designer-created share (team, 90 days)',pc(T.dcl90.share),T.dcl90.dcl+' of '+T.dcl90.n+' sold deals · '+pc(T.dcl90.share_usd)+' of sold $ · target 20–30% · '+O.dcl_bands.below.length+' designers below 20%, '+O.dcl_bands.in.length+' in band, '+O.dcl_bands.above.length+' above','neu')+
     tile('$ at risk (heat map)',m0(t.at_risk),'expected $ most likely to slip without action','neu')+'</div>';
   h+='<div class="grid g2" style="margin-top:10px"><div class="card"><b>🏆 Leading the month</b>'+O.leaders.map(function(r){return '<div class="rk" data-s="'+r.slug+'"><div><div class="n">'+esc(r.name)+'</div><div class="x">'+r.sales+' sales · '+(r.att!=null?pc(r.att)+' of team-typical':'')+'</div></div><b class="pos">'+m0(r.usd)+'</b></div>'}).join('')+'</div>'+

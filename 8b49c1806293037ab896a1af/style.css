@@ -274,3 +274,15 @@ body.psopen{overflow:hidden}
 .psct{font-size:13px;margin-top:2px}.psct .ct{margin:0}.psnone{padding:20px;color:var(--mut)}.psempty{padding:20px}
 @media(max-width:759px){.pstabs{display:flex;margin-left:auto}.pslist{width:100%;border-right:0}.psbox[data-tab=list] .psmapw{display:none}.psbox[data-tab=map] .pslist{display:none}
   .psbar{padding:8px}.psbar button{padding:6px 9px}}
+
+/* Next-step compliance roll-up rings (owner view, Oct 29, 2026) */
+#nsrings .nsrbig{margin:12px 0 6px}
+#nsrings .nsrbig .ring{width:120px;height:120px}#nsrings .nsrbig .ring>div{width:92px;height:92px;font-size:32px}
+.nsrg{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;margin-top:12px}
+.nsr{display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 4px;border-radius:10px;cursor:pointer;min-width:0}
+.nsr:hover{background:#f6f2ea}
+.ring.sm{width:64px;height:64px}.ring.sm>div{width:48px;height:48px;font-size:17px}
+.nsrn{font-weight:700;font-size:13px;margin-top:5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nsrx{font-size:11px;color:#666;line-height:1.3}.nsrsm{color:#999}
+.nsrnone{margin:10px 0 0;color:#777}
+@media (max-width:420px){.nsrg{grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px}}
