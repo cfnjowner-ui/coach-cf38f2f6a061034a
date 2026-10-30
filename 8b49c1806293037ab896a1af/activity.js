@@ -6,15 +6,19 @@
 'use strict';
 var ACT=(function(){
 var CATS=[{k:'calls',l:'Calls',i:'📞'},{k:'texts',l:'Texts / emails',i:'💬'},{k:'followups',l:'Follow-ups',i:'🔁'},{k:'appts',l:'Appointments held',i:'🏠'},
-  {k:'quotes',l:'Quotes / contracts sent',i:'📄'},{k:'showroom',l:'Showroom visits',i:'🏬'},{k:'leads',l:'Referrals asked / own leads',i:'🌱'},{k:'closes',l:'Closes (signed)',i:'✅'}];
+  {k:'quotes',l:'Quotes / contracts sent',i:'📄'},{k:'showroom',l:'Showroom visits',i:'🏬'},{k:'leads',l:'Referrals asked / own leads',i:'🌱'},{k:'closes',l:'Closes (signed)',i:'✅'},
+  {k:'social',l:'Social posts',i:'📱'}];   /* Oct 29, 2026 (Andrew): social media posts. Form key social=N, sent only when N>0 (see countsStr) */
 var NUM={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,couple:2,pair:2,dozen:12,once:1,twice:2};
 /* word -> category (nouns and verbs). Order of checks in catOf() handles compounds. */
 var RX={showroom:/^showrooms?$/,followups:/^(followups?|followedup|checkins?|checkedin)$/,quotes:/^(quotes?|quoted|proposals?|estimates?|bids?|contracts?|agreements?|docusigns?)$/,
   appts:/^(appointments?|appts?|inhomes?|consults?|consultations?|measures?|meetings?|visits?|presentations?|met)$/,leads:/^(referrals?|leads?|dcls?|referred)$/,
   closes:/^(closes?|closed|sales?|sold|signed|deals?|deposits?)$/,texts:/^(texts?|texted|texting|emails?|emailed|emailing|messages?|messaged|sms)$/,
-  calls:/^(calls?|called|calling|phoned|dials?|dialed|voicemails?|vms?)$/};
+  calls:/^(calls?|called|calling|phoned|dials?|dialed|voicemails?|vms?)$/,
+  social:/^(social|socialmedia|instagram|insta|ig|facebook|fb|tiktok|pinterest|houzz|nextdoor|posts?|posted|posting|reels?)$/};
 var VERB={called:'calls',calling:'calls',phoned:'calls',dialed:'calls',texted:'texts',emailed:'texts',messaged:'texts',followedup:'followups',checkedin:'followups',
-  quoted:'quotes',sold:'closes',closed:'closes',signed:'closes',met:'appts',referred:'leads'};
+  quoted:'quotes',sold:'closes',closed:'closes',signed:'closes',met:'appts',referred:'leads',posted:'social'};
+/* Social posts (Oct 29, 2026): "posted on Instagram / Facebook / social media", "shared a reel on IG", "2 Instagram posts" = 1 (or N) social post. */
+var SOCIAL_RX=/\b(posted|posting|post|shared|sharing|reel|story)\b.*\b(instagram|insta|ig|facebook|fb|social|socialmedia|tiktok|pinterest|houzz|nextdoor|linkedin)\b|\b(instagram|insta|ig|facebook|fb|tiktok|pinterest|socialmedia)\s+(post|reel|story)\b/;
 function catOf(w){if(RX.showroom.test(w))return'showroom';for(var k in RX){if(RX[k].test(w))return k}return null}
 /* ── Parser rules (Oct 22, 2026 fix, Andrew): a number counts ONLY when it directly qualifies an activity noun or verb ("texted 20 clients",
    "3 calls"). Removed before reading: dates (10/22, 10-22, 10/22/2026, Oct 22), times (6pm, 2:30, 12noon, at six, 10 o'clock), money ($50,
@@ -48,7 +52,7 @@ function mask(t){return String(t||'')
 function norm(t){return String(t||'').toLowerCase().replace(/[’']/g,'').replace(/follow[\s-]*ups?\b/g,'followup').replace(/followed[\s-]+up/g,'followedup')
   .replace(/check(ed)?[\s-]+in(s)?\b/g,function(m,a,b){return a?'checkedin':'checkin'+(b||'')}).replace(/in[\s-]+home/g,'inhome').replace(/designer[\s-]*created(\s+leads?)?/g,'dcl').replace(/self[\s-]*gen(erated)?(\s+leads?)?/g,'dcl')
   .replace(/\bno[\s-]+sales?\b/g,'nosale').replace(/\bservice[\s-]+calls?\b/g,'servicecall').replace(/\b(sales|team|corporate|designer|bni|networking|staff|company|zoom)\s+meetings?\b/g,'groupmeeting')
-  .replace(/\bdocu[\s-]+sign/g,'docusign').replace(/\b(not|never)\s+(yet\s+)?signed\b|\bunsigned\b/g,'unsigned').replace(/\bsales\s+calls?\b/g,'calls').replace(/\bphone\s+calls?\b/g,'calls')}
+  .replace(/\bdocu[\s-]+sign/g,'docusign').replace(/\b(not|never)\s+(yet\s+)?signed\b|\bunsigned\b/g,'unsigned').replace(/\bsales\s+calls?\b/g,'calls').replace(/\bphone\s+calls?\b/g,'calls').replace(/\bsocial[\s-]+media\b/g,'socialmedia')}
 function numOf(w,next,next2){if(/^\d+$/.test(w))return parseInt(w,10);if(NUM[w]!=null)return NUM[w];
   if((w==='a'||w==='an'||w==='another')&&(catOf(next||'')||catOf(next2||'')))return 1;return null}
 var STOPW={about:1,regarding:1,re:1,for:1,to:1,with:1,from:1,on:1,because:1,since:1,who:1,that:1,which:1,after:1,before:1,of:1,at:1,in:1};
@@ -68,6 +72,7 @@ function parse(text){var counts={},hits=[];CATS.forEach(function(c){counts[c.k]=
       if(!cat){for(var b=i-1;b>=0&&b>=i-2;b--){if(VERB[w[b]]){cat=VERB[w[b]];break}var cb=catOf(w[b]);if(cb){cat=cb;break}if(!STOPW[w[b]])break}}
       if(cat){counts[cat]+=n;got=true;hits.push({n:n,cat:cat,phrase:w.slice(Math.max(0,i-2),i+1+Math.min(win.length,4)).join(' ')})}}
     if(!got){for(var q=1;q<w.length;q++){if(catOf(w[q])==='quotes'&&!/^quot/.test(w[q])&&w.slice(Math.max(0,q-3),q).some(function(z){return /^(sent|send|sending|emailed|emailing|texted|docusigned)$/.test(z)})){counts.quotes+=1;got=true;hits.push({n:1,cat:'quotes',phrase:w.slice(Math.max(0,q-3),q+1).join(' '),implied:true});break}}}
+    if(!got&&SOCIAL_RX.test(w.join(' '))){counts.social+=1;got=true;hits.push({n:1,cat:'social',phrase:w.slice(0,6).join(' '),implied:true})}
     if(!got){for(var v=0;v<w.length;v++){var iv=VERB[w[v]]||(v>0&&/^(sent|send|sending|left|made|did|had)$/.test(w[v-1])&&catOf(w[v]));if(iv){counts[iv]+=1;hits.push({n:1,cat:iv,phrase:w.slice(Math.max(0,v-1),v+4).join(' '),implied:true});break}}}});
   var scr=!!sc.script.replace(/\s+/g,'');
   if(scr&&/\breferr/i.test(sc.script)&&!counts.leads){counts.leads=1;hits.push({n:1,cat:'leads',phrase:'referral ask in the pasted message',implied:true})}
@@ -97,8 +102,10 @@ function key(slug){return 'cfnj_activity_v1_'+slug}
 function load(slug){try{var a=JSON.parse(localStorage.getItem(key(slug))||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}}
 function save(slug,a){try{localStorage.setItem(key(slug),JSON.stringify(a));return true}catch(e){return false}}
 /* ── central sync (Google Form formResponse; opaque no-cors response: no network error = sent) ── */
-var CKEY={calls:'calls',texts:'texts_emails',followups:'followups',appts:'appts',quotes:'quotes',showroom:'showroom',leads:'referrals',closes:'closes'};
-function countsStr(c){return CATS.map(function(k){return CKEY[k.k]+'='+(+((c||{})[k.k])||0)}).join('; ')}
+var CKEY={calls:'calls',texts:'texts_emails',followups:'followups',appts:'appts',quotes:'quotes',showroom:'showroom',leads:'referrals',closes:'closes',social:'social'};
+/* Counts string = the 8 original keys always (zeros included), then '; social=N' ONLY when N>0 (Oct 29, 2026). Older rows and every entry without a
+   social post keep exactly the old string, so their de-dup key (app.js actKey / activity_rows.key) is unchanged. Must match activity_rows.parse_counts. */
+function countsStr(c){return CATS.filter(function(k){return k.k!=='social'||+((c||{}).social)>0}).map(function(k){return CKEY[k.k]+'='+(+((c||{})[k.k])||0)}).join('; ')}
 function payload(F,who,e){var f=F.fields,p={};p[f.designer]=who;p[f.date]=e.d;p[f.counts]=countsStr(e.c);p[f.note]=e.note||'';return p}
 function enc(p){return Object.keys(p).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(p[k])}).join('&')}
 function postForm(url,p){                                    /* resolves on send, rejects on network error / timeout */
