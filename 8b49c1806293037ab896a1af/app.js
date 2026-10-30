@@ -733,7 +733,7 @@ function nsOwner(){var N=D.owner&&D.owner.ns;if(!N)return'';var pc=N.promo_cnt,m
    '<details style="margin-top:8px"><summary class="small">Strengths and habits by designer</summary><ul class="tight small">'+N.designers.map(function(r){return '<li><b>'+esc(r.name)+'</b>: <span class="pos">'+r.strengths.map(esc).join('; ')+'</span>'+(r.habits.length?' · <span class="neg">'+r.habits.map(esc).join('; ')+'</span>':'')+'</li>'}).join('')+'</ul></details></div>';
   h+=inOwner(N.inact);
   h+=fuOwner();
-  h+=nsDnc(N.dnc);
+  /* Oct 29, 2026 (Andrew): owner page no longer shows the Do-not-contact roll-up (nsDnc kept unused; all DNC blocking/masking logic unchanged) */
   h+=nsPromo(N.promo,true);
   h+='<p class="small" style="margin:4px 2px 10px">📱 The past-client text template on every designer page is modeled on Angela\'s past-client text (Teams Design Team chat, Oct 22). The $5,000 threshold is enforced: every text says "free color upgrade on agreements over $5,000 when you visit our Fanwood showroom", with no end date and no phone numbers (clients already have your cell because you text from it).</p>';
   h+='<p class="fine">$ at risk = open quote with no dated note in 14+ days AND no dated next step (note date, follow-up date, booked appointment or open task). Lowe\'s customers are identified by ClosetWare lead source type LOWES (Category "Lowes Store"); Lowe\'s 18-mo no interest if paid in full is offered only to them. Rules and sources: playbook section 15. '+N.limits.map(esc).join(' ')+'</p>';
