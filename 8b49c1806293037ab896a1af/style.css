@@ -297,3 +297,4 @@ body.psopen{overflow:hidden}
 #socroll .socp{color:#0d7a45}
 #socroll .soctab td:nth-child(n+2),#socroll .soctab th:nth-child(n+2){text-align:center}
 @media(max-width:420px){.actsoc .btn{width:100%}.schip{padding:6px 11px}}
+.gpx{font-size:11.5px;line-height:1.35;color:var(--mut);margin-top:3px;padding-top:3px;border-top:1px dashed var(--line);overflow-wrap:anywhere}.gpx b{font-weight:600}.gpx b.neu{color:#14171c}

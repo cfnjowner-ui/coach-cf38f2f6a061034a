@@ -203,10 +203,21 @@ function goalPanel(){var O=D.owner,M=D.meta,ts=M.typ_share,near=M.cfg.PACE_NEAR,
       '<div class="gbar"><div class="p" style="width:'+P(r.proj)+'"></div><div class="f" style="width:'+P(x.fin)+'"></div><div class="q" style="left:'+P(x.fin)+';width:'+(r.pend>0?Math.max(0.5,Math.min(100,r.pend/mx*100)).toFixed(1):0)+'%"></div><div class="m" style="left:'+P(x.pace)+'"></div><div class="m g" style="left:'+P(x.g)+'"></div></div>'+
       '<div class="gpd"><span>Sold <b class="'+x.st+'">'+m0(r.usd)+'</b>'+(r.pend>0?' <span class="small">(+'+m0(r.pend)+' pending)</span>':'')+'</span><span>'+(isP?'Oct target':'Goal')+' <b>'+m0(x.g)+'</b></span></div>'+
       '<div class="gpd"><span class="small">'+(isP?'On path ':'On pace ')+m0(x.pace)+' · '+(x.behind>0?'<b class="'+(x.st==='neg'?'neg':'neu')+'">'+m0(x.behind)+' behind</b>':'<b class="pos">'+m0(-x.behind)+' ahead</b>')+'</span><span class="small">Proj <b class="'+cls(r.proj,x.g,x.g*.05)+'">'+m0(r.proj)+'</b></span></div>'+
-      (isP?'<div class="gpd"><span class="small">'+(r.target-r.usd>0?'Still to sell '+m0(r.target-r.usd)+' · '+m0((r.target-r.usd)/Math.max(1,M.days_left))+'/day':'Target hit')+'</span></div>':(r.no_target_why?'<div class="gpd"><span class="small">No October target: '+esc(r.no_target_why)+'</span></div>':''))+'</div>'}).join('')+'</div>';
+      (isP?'<div class="gpd"><span class="small">'+(r.target-r.usd>0?'Still to sell '+m0(r.target-r.usd)+' · '+m0((r.target-r.usd)/Math.max(1,M.days_left))+'/day':'Target hit')+'</span></div>':(r.no_target_why?'<div class="gpd"><span class="small">No October target: '+esc(r.no_target_why)+'</span></div>':''))+gpStats(r)+'</div>'}).join('')+'</div>';
+  h+='<p class="fine" style="margin:8px 0 0">Small print: <b>Close</b> = corporate close rate this month (Sold Final ÷ held first appointments, same as the designer page and Sales Board; goal '+pc(D.meta.close_goal||0.62)+' from the Sales Board KPI). Sales by type = this month\'s sold $ (incl. pending Final) by ClosetWare project type; each sale counts once under its one type (ClosetWare has no per-room $). <b>Garage?</b> = ClosetWare\'s Garage placeholder where the booking note does not name one room; <b>Unclassified</b> = signed, not yet in ClosetWare.</p>';
   if(leave.length)h+='<p class="fine" style="margin:8px 0 0">'+(PL?'No October target on the Sales Board, so no goal shown: ':'On leave, no goal: ')+leave.map(function(r){return esc(r.name)+(PL&&r.no_target_why?' ('+esc(r.no_target_why)+')':'')}).join(', ')+'. Inactive designers are not on the roster. Color: green = at or above the path; black = near or too early to judge; red = behind by more than 10% of the plan since Oct 18'+(PL?'':' (personal-goal rows: more than 10% behind pace)')+'.</p>';
   return h+'</div>'}
 
+/* Card stats (Andrew, Oct 30, 2026): close rate + sales by project type in small print on each goal card.
+   Close = corporate close rate MTD (Sold Final ÷ held first appts this month, same as the designer page tile and the Sales Board), goal from
+   the Sales Board KPI file (62%). Green at/above goal, black otherwise (never red). Categories = this month's sold $ by ClosetWare project
+   type (whole sale under the opp's one type); "Garage?" = ClosetWare Garage placeholder; "Unclassified" = signed, not yet in ClosetWare. */
+function gpStats(r){var G=D.meta.close_goal||0.62,h='';
+  var cl=r.held>0?'Close <b class="'+(r.rate>=G?'pos':'neu')+'">'+pc(r.rate)+'</b>'+(r.rate_fin_n!=null?' ('+r.rate_fin_n+'/'+r.held+' first appts)':'')+' · goal '+pc(G):'Close – (no held first appts yet)';
+  var cs=r.cats||[],tx='';
+  if(cs.length){var top=cs.filter(function(c){return c.c!=='Unclassified'}).slice(0,3),rest=cs.filter(function(c){return top.indexOf(c)<0}),ot=rest.reduce(function(a,c){return a+c.usd},0);
+    tx=top.map(function(c){return esc(c.c)+' '+mk(c.usd)}).join(' · ')+(ot>0?(top.length?' · ':'')+(rest.length===1?esc(rest[0].c):'Other')+' '+mk(ot):'')}
+  return '<div class="gpx">'+cl+(tx?'<br>'+tx:'')+'</div>'}
 function nsCol(sc,n){return sc==null||(n!=null&&n<3)?'#999':sc>=75?'#0d7a45':sc>=50?'#b26b00':'#c62828'}
 function nsRings(){var O=D.owner,T=D.team,tn=T.notes,sc=Math.round(tn.score);
   var rows=O.rows.filter(function(r){return r.nscore!=null&&r.live_n>0}).slice().sort(function(a,b){return a.nscore-b.nscore||b.live_usd-a.live_usd});
