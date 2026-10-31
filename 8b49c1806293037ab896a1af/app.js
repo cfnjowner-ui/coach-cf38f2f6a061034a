@@ -215,9 +215,12 @@ function goalPanel(){var O=D.owner,M=D.meta,ts=M.typ_share,near=M.cfg.PACE_NEAR,
 function gpStats(r){var G=D.meta.close_goal||0.62,h='';
   var cl='Close Oct '+(r.held>0?'<b class="'+(r.held>=8&&r.rate>=G?'pos':'neu')+'">'+pc(r.rate)+'</b>'+(r.rate_fin_n!=null?' ('+r.rate_fin_n+'/'+r.held+')':''):'–')+
     (r.rate90!=null&&r.held90>0?' · 90d <b class="'+(r.held90>=20&&r.rate90>=G?'pos':'neu')+'">'+pc(r.rate90)+'</b>':'')+' · goal '+pc(G);
-  var cs=r.srcs||[],tx='';
-  if(cs.length){var top=cs.filter(function(c){return c.c!=='Unclassified'}).slice(0,3),rest=cs.filter(function(c){return top.indexOf(c)<0}),ot=rest.reduce(function(a,c){return a+c.usd},0);
-    tx=top.map(function(c){return esc(c.c)+'&nbsp;'+mk(c.usd)}).join(' · ')+(ot>0?(top.length?' · ':'')+(rest.length===1?esc(rest[0].c):'Other')+'&nbsp;'+mk(ot):'')}
+  var cs=r.srcs||[],by={};cs.forEach(function(c){by[c.c]=(by[c.c]||0)+c.usd});
+  /* Oct 30 11:10 PM (Andrew): show every lead-source category for each designer, $0 included. Core/Costco/Lowe's/Designer-created always;
+     "No source" and "Unclassified" only when they hold dollars (they are data-gap buckets, not categories). */
+  var cats=['Core','Costco',"Lowe's",'Designer-created'];['No source','Unclassified'].forEach(function(k){if(by[k]>0)cats.push(k)});
+  Object.keys(by).forEach(function(k){if(cats.indexOf(k)<0&&by[k]>0)cats.push(k)});
+  var tx=cats.map(function(k){return esc(k)+'&nbsp;'+mk(by[k]||0)}).join(' · ');
   return '<div class="gpx">'+cl+(tx?'<br>'+tx:'')+'</div>'}
 function nsCol(sc,n){return sc==null||(n!=null&&n<3)?'#999':sc>=75?'#0d7a45':sc>=50?'#b26b00':'#c62828'}
 function nsRings(){var O=D.owner,T=D.team,tn=T.notes,sc=Math.round(tn.score);
