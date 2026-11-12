@@ -489,12 +489,12 @@ function goalPlanSec(x){var s=x.snap,g=x.goal,M=D.meta,T=D.team,dl=Math.max(1,M.
    30,000-ft roll-up. Data: x.ns / D.owner.ns built by nextsteps.py. Colors: good = green/neutral, bad = red/amber, facts neutral. ── */
 var NS_RULES=[['Note says signed','Confirm the paperwork and move to Sold (Designer) today','CFNJ stage rules'],
  ['Appointment booked within 3 weeks','Run it to a decision: agree up front on a yes, a no or a dated next visit; offer the Fanwood showroom on $5,000+ designs','Sandler up-front contract'],
- ['Next step more than 3 weeks out','Check in now with this month\'s showroom special','Rackham "advance"; honest urgency (this month\'s special)'],
+ ['Next step more than 3 weeks out','Check in now and offer a showroom visit sooner','Rackham "advance"; honest urgency (real dates only)'],
  ['Planned step in the note passed within 14 days','Log what happened and book the next visit today','CFNJ three-outcome rule'],
  ['Note mentions a spouse/partner','Joint review with both decision-makers at the showroom','Miller Heiman buying influences; Sandler one-legged calls'],
- ['Note mentions price/budget','Show the full and a phased version; Lowe\'s 18-mo no interest if paid in full only for Lowe\'s leads, otherwise Enhancify (terms depend on credit)','SPIN need-payoff; good/better/best'],
+ ['Note mentions price/budget','Show the full and a phased version; offer Enhancify (terms depend on credit)','SPIN need-payoff; good/better/best'],
  ['Note mentions another company','Showroom side-by-side: own Fanwood factory, lifetime guarantee','Challenger teach & tailor'],
- ['Note mentions timing/project','Agree a dated decision; mention this month\'s showroom special','SPIN implication; honest urgency only'],
+ ['Note mentions timing/project','Agree a dated decision around their real date (move-in, holiday, install schedule)','SPIN implication; honest urgency only'],
  ['Quote under 30 days, no dated step','Book the showroom review visit (24-72 h, day 7, day 14 rhythm)','HBR lead-response research; 24-72-7-14'],
  ['No dated note 14+ days','Call with a reason: the showroom invite; the goal is a firm appointment, not a sale on the call','24-72-7-14 rhythm; Rackham "advance"'],
  ['Appointment 90+ days ago, quiet','Re-open with an updated design. Aged quotes are still winnable: they got old because the follow-up stopped','Rackham "advance"'],
@@ -504,12 +504,12 @@ var NS_F={},NS_APPLY=null;
 var NS_DOS=[['do','Personalize: their first name, their project, from you. Lead with the relationship, not the pitch.','Reichheld, HBR 2003; HBR 2014 on keeping customers'],
  ['do','Make one clear ask: reply to you (or book a showroom visit).','Rackham: aim for an "advance"'],
  ['do','Ask for referrals when clients are happiest: right after install and at the thank-you call. Referred clients are worth more and stay longer.','Schmitt, Skiera & Van den Bulte 2011; Reichheld (NPS)'],
- ['do','Give an honest reason to reply now: this month\'s special. Never a fake deadline.','Challenger "take control"; CFNJ honest urgency'],
+ ['do','Give an honest reason to reply now (their own timing, the install schedule). Never a fake deadline or offer.','Challenger "take control"; CFNJ honest urgency'],
  ['do','No reply? Follow up once or twice, then call.','24-72-7-14 follow-up rhythm'],
  ['do','Log every contact in Designer Coach (My activity).','CFNJ rule'],
  ['dont','Don\'t mass-blast. Text only past clients you worked with, one-to-one from your own phone, and honor any "stop" right away. Bulk or automated marketing texts have consent rules (TCPA); this is not legal advice, so ask Andrew before any group or automated send.','FCC, TCPA consumer guide'],
- ['dont','Don\'t overpromise financing: Lowe\'s 18-mo no interest if paid in full is deferred interest (if the balance isn\'t paid in full within 18 months, interest is charged back to the purchase date) and is for Lowe\'s customers only; Enhancify terms depend on credit. Never promise approval or quote a payment.','CFPB on deferred interest'],
- ['dont','Don\'t discount on top of the special.','CFNJ rule'],
+ ['dont','Don\'t overpromise financing: Enhancify terms depend on credit. Never promise approval or quote a payment.','CFPB on deferred interest'],
+ ['dont','Don\'t mention a special or offer: our promotions ended Nov 11, 2026. Never discount to get a reply.','CFNJ rule'],
  ['dont','Don\'t pay or record the $50 Amazon gift card until the referral actually purchases.','CFNJ referral offer']];
 function nsDos(){return '<details class="card nsdos" open><summary><b>Texting past clients: do\'s and don\'ts</b></summary><ul class="tight small">'+NS_DOS.map(function(d){return '<li><b class="'+(d[0]==='do'?'pos':'neg')+'">'+(d[0]==='do'?'Do':'Don\'t')+':</b> '+esc(d[1].replace(/^Don't /,''))+' <span class="fine">('+esc(d[2])+')</span></li>'}).join('')+'</ul></details>'}
 function nsWho(p){return esc(p.name||'(no first name)')+(p.li?' '+esc(p.li)+'.':'')}
@@ -524,8 +524,9 @@ function ctLine(r,inl){if(!r)return'';var h=[];
   if(r.em)h.push('<a class="ctl cte" href="mailto:'+encodeURI(r.em)+'">✉️ '+esc(r.em)+'</a>'+(r.eo?'<span class="ctn"> (opted out of marketing email)</span>':''));
   if(!h.length)h.push('<span class="ctn">no phone or email on file</span>');
   return (inl?'<span class="ct cti">':'<div class="ct">')+h.join(inl?' ':'')+(inl?'</span>':'</div>')}
-function nsPromo(P,compact){var s=P.showroom,l=P.lowes;return '<div class="card nspromo"><div class="nsp"><span class="nsi">🍂</span><div><b>'+esc(s.name)+'</b><div class="small">'+esc(s.text)+'</div></div></div>'+
-  '<div class="nsp"><span class="nsi">🏠</span><div><b>'+esc(l.name)+'</b><div class="small">'+esc(l.text)+(compact?'':' Deals and past clients that qualify carry the "Lowe\'s 18-mo" tag.')+(l.terms_note?'<br><i>For you, not for clients: '+esc(l.terms_note)+'</i>':'')+'</div></div></div>'+
+/* Nov 11, 2026: promotions ended; a promo shows only while its on flag is true (nextsteps.PROMO). The referral thank-you always shows. */
+function nsPromo(P,compact){P=P||{};var s=P.showroom,l=P.lowes,on=function(o){return o&&o.on!==false};if(!on(s)&&!on(l)&&!P.referral)return'';return '<div class="card nspromo">'+(on(s)?'<div class="nsp"><span class="nsi">🍂</span><div><b>'+esc(s.name)+'</b><div class="small">'+esc(s.text)+'</div></div></div>':'')+
+  (on(l)?'<div class="nsp"><span class="nsi">🏠</span><div><b>'+esc(l.name)+'</b><div class="small">'+esc(l.text)+(compact?'':' Deals and past clients that qualify carry the "Lowe\'s 18-mo" tag.')+(l.terms_note?'<br><i>For you, not for clients: '+esc(l.terms_note)+'</i>':'')+'</div></div></div>':'')+
   (P.referral?'<div class="nsp"><span class="nsi">🎁</span><div><b>'+esc(P.referral.name)+'</b><div class="small">'+esc(P.referral.text)+'</div></div></div>':'')+'</div>'}
 function nsCard(p,T){var tod=p.due===T,dc='';
   return '<div class="nsd" data-k="'+p.k+'" data-due="'+(tod?1:0)+'" data-sr="'+(p.showroom?1:0)+'" data-lw="'+(p.lowes?1:0)+'" data-usd="'+p.usd+'" data-i="'+p.i+'" data-ref="'+esc(p.ref)+'">'+
@@ -548,12 +549,12 @@ function pcCard(c,P){return '<div class="nsd pc" data-pref="'+esc(c.ref)+'"><div
     '<div class="small nsm">'+esc(c.rooms_d||c.rooms.join(', '))+' · sold '+esc(c.sold)+(c.n>1?' · '+c.n+' projects':'')+' '+c.tags.map(function(t){return '<span class="chip '+(t.indexOf('Lowe')===0?'':'g')+'">'+esc(t)+'</span>'}).join('')+'</div>'+gphHint(c)+inBlock(c)+
     '<div class="why small"><b>Why this person:</b> '+esc(c.why)+(c.fit?' <span class="chip">'+esc(c.fit)+'</span>':'')+'</div>'+
     (c.text?'<div class="small nslab"><b>📱 Text (ready to send)</b></div><div class="nss nstx"><span>'+esc(c.text)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>':'')+
-    (c.lowes&&P.lowes.terms_note?'<div class="fine nslw">For you only, not in the text: '+esc(P.lowes.terms_note)+'</div>':'')+
+    (c.lowes&&P.lowes&&P.lowes.on!==false&&P.lowes.terms_note?'<div class="fine nslw">For you only, not in the text: '+esc(P.lowes.terms_note)+'</div>':'')+
     '<details class="nscall"><summary class="small"><b>📞 Call version</b></summary><div class="nss"><span>'+esc(c.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></details>'+cbBtns('pc',c.ref)+fuBox('pc',c.ref)+'<button type="button" class="cbdnc" data-ref="'+esc(c.ref)+'">🚫 Don\'t contact</button></div>'}
 function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N.deals||[];
   h+=nsPromo(P);
   h+='<div class="grid">'+tile('In play',m0(N.usd),N.n+' open quote'+(N.n===1?'':'s')+' · every one is winnable','neu')+tile('Due today',n0(N.today_n),'next steps to do today ('+N.per_day+' a day, biggest $ first)',N.today_n?'neu':'neu')+
-   tile('Quiet 14+ days',n0(N.nodate_n),m0(N.nodate_usd)+' with no dated note in 14+ days',N.nodate_n?'neg':'pos')+tile('Showroom invites',n0(ds.filter(function(p){return p.showroom&&p.usd>=5000}).length),'quotes over $5,000 that qualify for the free color upgrade with a visit','neu')+'</div>';
+   tile('Quiet 14+ days',n0(N.nodate_n),m0(N.nodate_usd)+' with no dated note in 14+ days',N.nodate_n?'neg':'pos')+tile('Showroom invites',n0(ds.filter(function(p){return p.showroom&&p.usd>=5000}).length),'quotes over $5,000 with a showroom visit in the next step','neu')+'</div>';
   if(!ds.length)h+='<div class="card"><p class="small" style="margin:0">No open quotes right now. Your past clients below are the fastest way to build October.</p></div>';
   else{h+='<div class="card"><div class="nsbar"><div class="seg nsf"><button data-f="all" class="on">All '+ds.length+'</button><button data-f="due">Today</button><button data-f="sr">Showroom</button><button data-f="lw">Lowe\'s</button></div><div class="seg nso"><button data-o="pri" class="on">Priority</button><button data-o="usd">$</button></div></div>'+
    '<p class="fine" style="margin:4px 0 8px">One next step per quote, ordered by dollars × urgency. Tap Copy for the talk track; tick the box when it is done (saved on this device). After each call, write the one-line note: date, place, time.</p><div id="nsl">'+ds.map(function(p){return nsCard(p,T)}).join('')+'</div>'+
@@ -740,8 +741,8 @@ function cbWire(x){CB_X=x;cbPcRender(x,false);fuRender(x);cbDealRender(x);fuWire
 function nsOwner(){var N=D.owner&&D.owner.ns;if(!N)return'';var pc=N.promo_cnt,mx=Math.max.apply(null,N.types.map(function(t){return t.usd}).concat([1])),h='';
   h+='<div class="card" style="border-left:5px solid #12263f"><b>Top 3 things to know</b><ol class="small" style="margin:6px 0 0;padding-left:20px">'+N.top3.map(function(t){return '<li style="margin:4px 0">'+esc(t)+'</li>'}).join('')+'</ol></div>';
   h+='<div class="grid">'+tile('In play',m0(N.usd),N.n+' open quotes · roster designers · every one gets one next step','neu')+tile('$ at risk',m0(N.risk_usd),pc0(N.risk_usd,N.usd)+' of in play · no dated note in 14+ days and no dated next step',N.risk_usd>0?'neg':'pos')+
-   tile('Quiet 14+ days',n0(N.nodate_n),m0(N.nodate_usd)+' with no dated note in 14+ days','neg')+tile('Showroom invites',n0(pc.showroom_deals),m0(pc.showroom_usd)+' over $5,000 · plus '+pc.scope_deals+' at $2,500-$4,999 ('+m0(pc.scope_usd)+') where added scope may fit','neu')+
-   tile('Lowe\'s 18-mo eligible',n0(pc.lowes_deals)+' deals',m0(pc.lowes_usd)+' · plus '+pc.lowes_past+' past clients on the October call lists','neu')+tile('Past clients to call',n0(pc.past),'top 10 per designer from '+pc.past_pool+' sold clients (last 24 months, 60+ days after sale; older years when a list runs low)','neu')+'</div>';
+   tile('Quiet 14+ days',n0(N.nodate_n),m0(N.nodate_usd)+' with no dated note in 14+ days','neg')+tile('Showroom invites',n0(pc.showroom_deals),m0(pc.showroom_usd)+' over $5,000 with a showroom visit in the next step','neu')+
+   tile('Lowe\'s customers',n0(pc.lowes_deals)+' deals',m0(pc.lowes_usd)+' · plus '+pc.lowes_past+' past clients on the call lists','neu')+tile('Past clients to call',n0(pc.past),'top 10 per designer from '+pc.past_pool+' sold clients (last 24 months, 60+ days after sale; older years when a list runs low)','neu')+'</div>';
   h+='<div class="card"><b>$ by recommended next step</b><div style="margin-top:8px">'+N.types.map(function(t){return '<div class="nst"><div class="nstl"><span>'+esc(t.label)+'</span><b>'+m0(t.usd)+' <span class="small">('+t.n+')</span></b></div><div class="tb"><i style="width:'+(t.usd/mx*100).toFixed(1)+'%"></i></div></div>'}).join('')+'</div></div>';
   h+='<div class="card"><b>$ at risk by designer</b> <span class="small">most dollars at risk first · tap a row to open the page</span><div class="tw"><table><thead><tr><th>Designer</th><th>In play</th><th>$ at risk</th><th>Quiet 14+ d</th><th>Showroom</th><th>Lowe\'s deals / past</th><th>Past clients</th><th>Top next step</th></tr></thead><tbody>'+
    N.designers.map(function(r){return '<tr class="click" data-s="'+r.slug+'"><td>'+esc(r.name)+'</td><td>'+m0(r.usd)+' <span class="small">('+r.n+')</span></td><td class="'+(r.risk_usd>0?'neg':'neu')+'">'+m0(r.risk_usd)+'</td><td class="'+(r.nodate_n?'neg':'neu')+'">'+r.nodate_n+'</td><td>'+r.showroom+'</td><td>'+r.lowes_deals+' / '+r.lowes_past+'</td><td>'+r.past+' <span class="small">of '+r.past_pool+'</span></td><td class="small">'+(r.top?esc(r.top.label)+' ('+mk(r.top.usd)+')':'–')+'</td></tr>'}).join('')+'</tbody></table></div>'+
@@ -750,8 +751,8 @@ function nsOwner(){var N=D.owner&&D.owner.ns;if(!N)return'';var pc=N.promo_cnt,m
   h+=fuOwner();
   /* Oct 29, 2026 (Andrew): owner page no longer shows the Do-not-contact roll-up (nsDnc kept unused; all DNC blocking/masking logic unchanged) */
   h+=nsPromo(N.promo,true);
-  h+='<p class="small" style="margin:4px 2px 10px">📱 The past-client text template on every designer page is modeled on Angela\'s past-client text (Teams Design Team chat, Oct 22). The $5,000 threshold is enforced: every text says "free color upgrade on agreements over $5,000 when you visit our Fanwood showroom", with no end date and no phone numbers (clients already have your cell because you text from it).</p>';
-  h+='<p class="fine">$ at risk = open quote with no dated note in 14+ days AND no dated next step (note date, follow-up date, booked appointment or open task). Lowe\'s customers are identified by ClosetWare lead source type LOWES (Category "Lowes Store"); Lowe\'s 18-mo no interest if paid in full is offered only to them. Rules and sources: playbook section 15. '+N.limits.map(esc).join(' ')+'</p>';
+  h+='<p class="small" style="margin:4px 2px 10px">📱 The past-client text template on every designer page is modeled on Angela\'s past-client text (Teams Design Team chat, Oct 22). Our promotions ended Nov 11, 2026, so no text or script mentions a special or offer (the $50 referral thank-you stays), and there are no phone numbers (clients already have your cell because you text from it).</p>';
+  h+='<p class="fine">$ at risk = open quote with no dated note in 14+ days AND no dated next step (note date, follow-up date, booked appointment or open task). Lowe\'s customers are identified by ClosetWare lead source type LOWES (Category "Lowes Store"). Rules and sources: playbook section 15. '+N.limits.map(esc).join(' ')+'</p>';
   return sec('nsown','💼 Close this month: 30,000-ft view',h)}
 /* owner: clients from designers no longer here + deep-history fallback (Oct 28, 2026). Real counts from the build only. */
 function inOwner(I){if(!I)return '';
