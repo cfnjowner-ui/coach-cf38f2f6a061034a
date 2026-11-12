@@ -546,7 +546,7 @@ function inBlock(c){if(!c||!c.inact)return '';var H=c.hist||[];
      H.map(function(h){return '<div class="inr"><b>'+esc(h.d)+'</b> · '+esc(h.st)+' · '+(h.usd!=null?m0(h.usd):'–')+' · '+esc(h.room||'room not recorded')+' · '+esc(h.src||'lead source not recorded')+' · <span class="fine">designer:</span> '+esc(h.des||'–')+'</div>'}).join('')+'</div></details>':'')+
    (c.match?'<div class="inm">🤝 '+esc(c.match)+'</div>':'')+'</div>'}
 function pcCard(c,P){return '<div class="nsd pc" data-pref="'+esc(c.ref)+'"><div class="top"><span><b>'+nsWho(c)+'</b> <span class="ref">'+esc(c.ref)+'</span></span><span class="amt">'+m0(c.usd)+'</span></div>'+ctLine(c)+
-    '<div class="small nsm">'+esc(c.rooms_d||c.rooms.join(', '))+' · sold '+esc(c.sold)+(c.n>1?' · '+c.n+' projects':'')+' '+c.tags.map(function(t){return '<span class="chip '+(t.indexOf('Lowe')===0?'':'g')+'">'+esc(t)+'</span>'}).join('')+'</div>'+gphHint(c)+inBlock(c)+
+    '<div class="small nsm">'+esc(c.rooms_d||c.rooms.join(', '))+(c.lost?' · quoted, lost '+esc(c.sold):' · sold '+esc(c.sold))+(c.n>1?' · '+c.n+' projects':'')+' '+c.tags.map(function(t){return '<span class="chip '+(t.indexOf('Lowe')===0?'':'g')+'">'+esc(t)+'</span>'}).join('')+'</div>'+gphHint(c)+inBlock(c)+
     '<div class="why small"><b>Why this person:</b> '+esc(c.why)+(c.fit?' <span class="chip">'+esc(c.fit)+'</span>':'')+'</div>'+
     (c.text?'<div class="small nslab"><b>📱 Text (ready to send)</b></div><div class="nss nstx"><span>'+esc(c.text)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>':'')+
     (c.lowes&&P.lowes&&P.lowes.on!==false&&P.lowes.terms_note?'<div class="fine nslw">For you only, not in the text: '+esc(P.lowes.terms_note)+'</div>':'')+
@@ -577,6 +577,11 @@ function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N
      ((N.inact||[]).length?'<p class="small cbhelp">Same buttons as your past clients: tap what you did (💬 Texted · 📞 Called · 🏠 Visited · ✉️ Emailed) and it is logged in your activity; 🚫 Don\'t contact takes them off every list.</p>':'')+
      '<div id="inl"></div><p class="small hidden" id="inend"></p></div>';
    out+=sec('inact','👥 Clients from designers no longer here',ih)}
+  /* Lost but winnable (Andrew approved, Nov 11, 2026): your own lost quotes (1-18 months), not bought since, no open quote */
+  if(N.lost){var lh='<div class="card"><p class="small" style="margin:0 0 8px">'+((N.lost||[]).length+(N.lost_res||[]).length?'<b>Quotes you lost 1-18 months ago</b> for no decision, budget or timing. They have not bought since and have no open quote, so a friendly, no-pressure check-in can win them back. Each card has a soft text (no discounts, no specials) and a call version. Showing <span id="lon">'+Math.min(N.lost_show||10,(N.lost||[]).length+(N.lost_res||[]).length)+'</span> at a time; the next one moves up when you log a contact.':'No lost quotes to revisit right now.')+'</p>'+
+     ((N.lost||[]).length?'<p class="small cbhelp">Same buttons as your past clients: tap what you did and it is logged; they leave this list for '+(N.pc_quiet||60)+' days. A dated follow-up note brings them back on that day. 🚫 Don\'t contact takes the household off every list.</p>':'')+
+     '<div id="lol"></div><p class="small hidden" id="loend"></p></div>';
+   out+=sec('lost','🔁 Lost but winnable',lh)}
   /* strengths / habits */
   var C=N.coach||{},a=C.act||{},ch='<div class="grid g2">';
   ch+='<div class="card"><b>What you do well</b>'+(C.strengths||[]).map(function(s){return '<div class="win" style="margin-top:8px"><div class="i">✅</div><div><b>'+esc(s.t)+'</b><span>'+esc(s.d)+'</span></div></div>'}).join('')+'</div>';
@@ -642,7 +647,7 @@ function cbPastAll(x,st,k){var N=x.ns,g=fuState(x);k=k||'past';return (N[k]||[])
 var CB_MORE={};
 function cbLim(x,k){var b=x.ns[k+'_show'];return (b==null?10:Math.max(10,b))+(CB_MORE[x.slug+'|'+k]||0)}
 function cbPast(x,st,k){k=k||'past';return cbPastAll(x,st,k).slice(0,cbLim(x,k))}   /* a governing follow-up note holds the client until its date (then pinned) */
-function cbPcRender(x,anim){cbListRender(x,anim,'inact','#inl','#inn','#inend');cbListRender(x,anim,'past','#pcl','#pcn','#pcend')}
+function cbPcRender(x,anim){cbListRender(x,anim,'lost','#lol','#lon','#loend');cbListRender(x,anim,'inact','#inl','#inn','#inend');cbListRender(x,anim,'past','#pcl','#pcn','#pcend')}
 function cbListRender(x,anim,k,lid,nid,eid){var L=$(lid);if(!L)return;var st=cbState(x),all=cbPastAll(x,st,k),lim=cbLim(x,k),want=all.slice(0,lim),have={};
   [].slice.call(L.querySelectorAll('.nsd.pc')).forEach(function(el){var r=el.dataset.pref;if(want.some(function(c){return c.ref===r}))have[r]=el;else el.remove()});
   want.forEach(function(c){var el=have[c.ref];if(!el){var t=document.createElement('div');t.innerHTML=pcCard(c,x.ns.promo);el=t.firstChild;cbWireCard(el);if(anim){el.classList.add('cbin');setTimeout(function(){el.classList.remove('cbin')},600)}}L.appendChild(el)});
@@ -650,7 +655,7 @@ function cbListRender(x,anim,k,lid,nid,eid){var L=$(lid);if(!L)return;var st=cbS
   var mb=$(lid+'more');if(!mb&&L.parentNode){mb=document.createElement('button');mb.type='button';mb.className='btn ghost cbmore';mb.id=lid.slice(1)+'more';mb.style.width='100%';L.parentNode.insertBefore(mb,L.nextSibling);
     mb.onclick=function(){CB_MORE[x.slug+'|'+k]=(CB_MORE[x.slug+'|'+k]||0)+10;cbListRender(x,false,k,lid,nid,eid)}}
   if(mb){var left=all.length-want.length;mb.classList.toggle('hidden',left<=0);mb.textContent='Show more ('+Math.min(10,left)+' of '+left+' more)'}
-  if(k==='inact'){if(e){var ni=((x.ns.inact||[]).concat(x.ns.inact_res||[])).filter(function(c){return st.pc[c.ref]}).length;e.classList.toggle('hidden',!ni&&want.length===lim);e.innerHTML=(ni?'✓ '+ni+' contacted in the last '+(x.ns.pc_quiet||60)+' days (off the list for now). ':'')+(want.length<lim?'<b>That is everyone on this list for now.</b> More come in with the next refresh.':'')}return}
+  if(k!=='past'){if(e){var ni=((x.ns[k]||[]).concat(x.ns[k+'_res']||[])).filter(function(c){return st.pc[c.ref]}).length;e.classList.toggle('hidden',!ni&&want.length===lim);e.innerHTML=(ni?'✓ '+ni+' contacted in the last '+(x.ns.pc_quiet||60)+' days (off the list for now). ':'')+(want.length<lim?'<b>That is everyone on this list for now.</b> More come in with the next refresh.':'')}return}
   if(e){e.classList.toggle('hidden',!nc&&want.length===lim);e.innerHTML=(nc?'✓ '+nc+' past client'+(nc===1?'':'s')+' contacted in the last '+(x.ns.pc_quiet||60)+' days (off the list for now). ':'')+(want.length<lim&&(x.ns.past||[]).length?'<b>That is everyone on your list for now.</b> More come in with the next refresh as clients reach 60 days after the sale.':'')}}
 function cbDealRender(x){var S=$('#nstd'),SL=$('#nstdl'),L=$('#nsl');if(!S||!L)return;var st=cbState(x),n=0;
   document.querySelectorAll('#nsl .nsd[data-ref], #nstdl .nsd[data-ref]').forEach(function(el){var r=el.dataset.ref,t=st.deal[r],ch=el.querySelector('.cbdone');
@@ -803,7 +808,7 @@ function fuState(x){var N=x.ns||{},note={},tap={},srv=N.fu||{};
   var L=cbLoad(x);['pc','deal'].forEach(function(k){Object.keys(L[k]).forEach(function(r){var o=L[k][r];if(o.t)tp(r,o.d,cbHms(new Date(o.t)))})});
   Object.keys(note).forEach(function(r){var v=note[r];v.g=!!(v.f&&v.sg!==0&&(!tap[r]||v.d+' '+v.h>=tap[r]))});
   return note}
-function fuFind(x,ref){var N=x.ns||{},a=[].concat(N.fu_recs||[],N.past||[],N.past_res||[],N.inact||[],N.inact_res||[]);for(var i=0;i<a.length;i++)if(a[i].ref===ref)return{k:'pc',c:a[i]};
+function fuFind(x,ref){var N=x.ns||{},a=[].concat(N.fu_recs||[],N.past||[],N.past_res||[],N.inact||[],N.inact_res||[],N.lost||[],N.lost_res||[]);for(var i=0;i<a.length;i++)if(a[i].ref===ref)return{k:'pc',c:a[i]};
   var ds=N.deals||[];for(i=0;i<ds.length;i++)if(ds[i].ref===ref)return{k:'deal',p:ds[i]};
   var o=(x.deals||[]).concat.apply(x.deals||[],(x.focus||[]).map(function(f){return f.deals||[]}));for(i=0;i<o.length;i++)if(o[i].ref===ref)return{k:'deal',m:o[i]};return null}
 function fuBox(kind,ref,fold){return '<div class="fu" data-kind="'+kind+'" data-ref="'+esc(ref)+'"><div class="fulast hidden"></div>'+(fold?'<details class="fufold"><summary>📝 Result / next step</summary>':'')+
