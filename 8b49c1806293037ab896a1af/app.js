@@ -537,7 +537,7 @@ function ffStep(c,kind,P){P=P||FF_P;if(!c||!ffOn(P))return'';var f=P.ff,nm=c.nam
   if(kind==='deal'){lab='Call: Friends & Family pricing through Dec 31. Re-price this proposal with the sale (take off any existing discount first), then call or text with the exact savings.';txt=ffFill(f.s_prop,nm,room)}
   else if(kind==='lost'){lab='Call: Friends & Family pricing through Dec 31 is a fresh reason to revisit this quote.';txt=ffFill(f.s_prop_unv,nm,room)}
   else if(kind==='inact'){lab='Call: Friends & Family Sale through Dec 31. Introduce yourself and ask about another space.';txt=ffFill(f.s_inact,nm,room)}
-  else{lab='Call: Friends & Family Sale through Dec 31. Ask about another space (up to $500 off each additional space).';txt=ffFill(f.s_client,nm,room)}
+  else{lab='Call: Friends & Family Sale through Dec 31. Ask about another space (extra savings on each additional space).';txt=ffFill(f.s_client,nm,room)}
   return '<details class="ffstep"><summary class="small"><b>🎉 Next step:</b> '+esc(lab)+'</summary><div class="nss"><span>'+esc(txt)+'</span><button class="btn ghost nscp" type="button">Copy</button></div><div class="fine">'+esc(f.exact)+'</div></details>'}
 function ffBanner(P,compact){if(!ffOn(P))return'';var f=P.ff,sc=function(t,s){return '<div class="small nslab"><b>'+t+'</b></div><div class="nss"><span>'+esc(s)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>'};
   var endl=new Date(f.end+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
