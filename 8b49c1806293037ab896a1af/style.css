@@ -298,3 +298,7 @@ body.psopen{overflow:hidden}
 #socroll .soctab td:nth-child(n+2),#socroll .soctab th:nth-child(n+2){text-align:center}
 @media(max-width:420px){.actsoc .btn{width:100%}.schip{padding:6px 11px}}
 .gpx{font-size:11.5px;line-height:1.35;color:var(--mut);margin-top:3px;padding-top:3px;border-top:1px dashed var(--line);overflow-wrap:anywhere}.gpx b{font-weight:600}.gpx b.neu{color:#14171c}
+/* Friends & Family Sale (Nov 16 - Dec 31, 2026) */
+.ffban{border-left:5px solid #c2185b;background:#fff5f8}.ffban .ffoff{font-weight:600;margin:4px 0 2px}.chip.ffend{background:#c2185b;color:#fff}
+.ffsc{margin-top:6px}.ffsc .nss{margin-top:2px}
+.ffstep{margin-top:6px;border-left:3px solid #c2185b;padding:2px 0 2px 8px}.ffstep summary{cursor:pointer}.ffrt{color:#7a5a00;border-left-color:#d9a400}

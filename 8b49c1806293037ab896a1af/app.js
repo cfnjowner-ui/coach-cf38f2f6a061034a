@@ -511,7 +511,7 @@ var NS_DOS=[['do','Personalize: their first name, their project, from you. Lead 
  ['dont','Don\'t overpromise financing: Enhancify terms depend on credit. Never promise approval or quote a payment.','CFPB on deferred interest'],
  ['dont','Don\'t mention a special or offer: our promotions ended Nov 11, 2026. Never discount to get a reply.','CFNJ rule'],
  ['dont','Don\'t pay or record the $50 Amazon gift card until the referral actually purchases.','CFNJ referral offer']];
-function nsDos(){return '<details class="card nsdos" open><summary><b>Texting past clients: do\'s and don\'ts</b></summary><ul class="tight small">'+NS_DOS.map(function(d){return '<li><b class="'+(d[0]==='do'?'pos':'neg')+'">'+(d[0]==='do'?'Do':'Don\'t')+':</b> '+esc(d[1].replace(/^Don't /,''))+' <span class="fine">('+esc(d[2])+')</span></li>'}).join('')+'</ul></details>'}
+function nsDos(){var L=ffOn(FF_P)?NS_DOS.map(function(d){return /promotions ended Nov 11/.test(d[1])?['dont','Don\'t offer any special except the Friends & Family Sale (through Dec 31): one offer per proposal, not for Costco or Lowe\'s leads, and confirm the exact savings before you quote them. Never discount to get a reply.','HQ Friends & Family Playbook; CFNJ rule']:d}):NS_DOS;return '<details class="card nsdos" open><summary><b>Texting past clients: do\'s and don\'ts</b></summary><ul class="tight small">'+L.map(function(d){return '<li><b class="'+(d[0]==='do'?'pos':'neg')+'">'+(d[0]==='do'?'Do':'Don\'t')+':</b> '+esc(d[1].replace(/^Don't /,''))+' <span class="fine">('+esc(d[2])+')</span></li>'}).join('')+'</ul></details>'}
 function nsWho(p){return esc(p.name||'(no first name)')+(p.li?' '+esc(p.li)+'.':'')}
 /* Client phone + email (Andrew, Oct 25, 2026): every client record on a designer page shows a tap-to-call (tel:) and tap-to-email
    (mailto:) link from ClosetWare (contacts.py: ph = mobile first, ph2 = other number, em, eo = email opt-out). Tapping a link only opens
@@ -524,8 +524,39 @@ function ctLine(r,inl){if(!r)return'';var h=[];
   if(r.em)h.push('<a class="ctl cte" href="mailto:'+encodeURI(r.em)+'">✉️ '+esc(r.em)+'</a>'+(r.eo?'<span class="ctn"> (opted out of marketing email)</span>':''));
   if(!h.length)h.push('<span class="ctn">no phone or email on file</span>');
   return (inl?'<span class="ct cti">':'<div class="ct">')+h.join(inl?' ':'')+(inl?'</span>':'</div>')}
+/* Friends & Family Sale (HQ, Nov 16 - Dec 31, 2026; Andrew, Nov 16, 2026 10:42 AM ET). Shows only while nextsteps.PROMO.ff.on is true AND
+   today (ET) is inside its start..end, so it disappears after Dec 31 even before the next build. The offer wording lives only in the
+   encrypted bundle (P.ff), never in this public file. Retail-partner (Costco / Lowe's) cards get HQ's "don't bring it up" note instead. */
+var FF_P=null,FF_ME='';
+function ffToday(){try{return new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'})}catch(e){return (D&&D.meta&&D.meta.today)||''}}
+function ffOn(P){var f=P&&P.ff,t=ffToday();return !!(f&&f.on===true&&f.end&&t>=(f.start||'')&&t<=f.end)}
+function ffFill(s,nm,room){return String(s||'').replace(/\{nm\}/g,nm||'there').replace(/\{me\}/g,FF_ME||'[your name]').replace(/\{room\}/g,room||'[space]')}
+function ffRoom(c){var r=String(c.room||c.rooms_d||((c.rooms||[])[0])||'').toLowerCase().split(/ · |, | and /)[0].replace(/\s*\(per booking note\)/,'').trim();if(!r||/placeholder|^(space|project|garage\?|another space)$/.test(r))return 'home organization';return r}
+function ffStep(c,kind,P){P=P||FF_P;if(!c||!ffOn(P))return'';var f=P.ff,nm=c.name||'there',room=ffRoom(c),lab,txt;
+  if(c.rt)return '<div class="ffstep ffrt small"><b>🎉 Friends &amp; Family:</b> '+esc(f.retail)+'</div>';
+  if(kind==='deal'){lab='Call: Friends & Family pricing through Dec 31. Re-price this proposal with the sale (take off any existing discount first), then call or text with the exact savings.';txt=ffFill(f.s_prop,nm,room)}
+  else if(kind==='lost'){lab='Call: Friends & Family pricing through Dec 31 is a fresh reason to revisit this quote.';txt=ffFill(f.s_prop_unv,nm,room)}
+  else if(kind==='inact'){lab='Call: Friends & Family Sale through Dec 31. Introduce yourself and ask about another space.';txt=ffFill(f.s_inact,nm,room)}
+  else{lab='Call: Friends & Family Sale through Dec 31. Ask about another space (up to $500 off each additional space).';txt=ffFill(f.s_client,nm,room)}
+  return '<details class="ffstep"><summary class="small"><b>🎉 Next step:</b> '+esc(lab)+'</summary><div class="nss"><span>'+esc(txt)+'</span><button class="btn ghost nscp" type="button">Copy</button></div><div class="fine">'+esc(f.exact)+'</div></details>'}
+function ffBanner(P,compact){if(!ffOn(P))return'';var f=P.ff,sc=function(t,s){return '<div class="small nslab"><b>'+t+'</b></div><div class="nss"><span>'+esc(s)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>'};
+  var endl=new Date(f.end+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  return '<div class="card ffban" id="ffban"><div class="nsp"><span class="nsi">🎉</span><div><b>'+esc(f.name)+'</b> <span class="chip ffend">Ends '+esc(endl)+'</span>'+
+   '<div class="ffoff">'+esc(f.text)+'</div><div class="fine">'+esc(f.fine)+'</div>'+
+   (compact?'':'<div class="small" style="margin-top:6px"><b>Who to call first:</b> open proposals (a fresh reason to move forward before Dec 31), then lost-but-winnable quotes, then past clients for another space. Cards below carry a 🎉 next step.</div>'+
+   '<details class="ffsc"><summary class="small"><b>Scripts</b> (from the HQ playbook)</summary>'+
+   sc('(a) Open proposal: text',ffFill(f.s_prop,'[First name]','[space]'))+
+   sc('(a) Open proposal: savings not priced yet',ffFill(f.s_prop_unv,'[First name]','[space]'))+
+   sc('(b) Lead who never booked',f.s_unbooked)+
+   sc('(b) Past client: new space / referral',ffFill(f.s_client,'[First name]','[space]'))+
+   sc('Voicemail',ffFill(f.s_vm,'[First name]','[space]'))+
+   '<div class="small" style="margin-top:6px"><b>Ask about another space:</b> '+esc(f.space_q)+'</div>'+
+   '<div class="small"><b>Pricing:</b> '+esc(f.example)+'</div>'+
+   '<div class="small"><b>Costco / Lowe\'s:</b> '+esc(f.retail)+'</div>'+
+   '<div class="small"><b>Don\'t guess:</b> '+esc(f.exact)+'</div>'+
+   '<div class="fine">'+esc(f.final_days)+' Source: '+esc(f.src)+'.</div></details>')+'</div></div></div>'}
 /* Nov 11, 2026: promotions ended; a promo shows only while its on flag is true (nextsteps.PROMO). The referral thank-you always shows. */
-function nsPromo(P,compact){P=P||{};var s=P.showroom,l=P.lowes,on=function(o){return o&&o.on!==false};if(!on(s)&&!on(l)&&!P.referral)return'';return '<div class="card nspromo">'+(on(s)?'<div class="nsp"><span class="nsi">🍂</span><div><b>'+esc(s.name)+'</b><div class="small">'+esc(s.text)+'</div></div></div>':'')+
+function nsPromo(P,compact){P=P||{};var s=P.showroom,l=P.lowes,on=function(o){return o&&o.on!==false};var fb=ffBanner(P,compact);if(!on(s)&&!on(l)&&!P.referral)return fb;return fb+'<div class="card nspromo">'+(on(s)?'<div class="nsp"><span class="nsi">🍂</span><div><b>'+esc(s.name)+'</b><div class="small">'+esc(s.text)+'</div></div></div>':'')+
   (on(l)?'<div class="nsp"><span class="nsi">🏠</span><div><b>'+esc(l.name)+'</b><div class="small">'+esc(l.text)+(compact?'':' Deals and past clients that qualify carry the "Lowe\'s 18-mo" tag.')+(l.terms_note?'<br><i>For you, not for clients: '+esc(l.terms_note)+'</i>':'')+'</div></div></div>':'')+
   (P.referral?'<div class="nsp"><span class="nsi">🎁</span><div><b>'+esc(P.referral.name)+'</b><div class="small">'+esc(P.referral.text)+'</div></div></div>':'')+'</div>'}
 function nsCard(p,T){var tod=p.due===T,dc='';
@@ -534,7 +565,7 @@ function nsCard(p,T){var tod=p.due===T,dc='';
   '<div class="nsa"><span class="chip '+dc+'">'+(tod?'Due today':'By '+esc(p.due_l))+'</span><b>'+esc(p.label)+'</b></div>'+
   '<div class="small nsm">'+esc(p.room)+' · '+esc(p.stage)+' · '+esc(p.src)+(p.chips||[]).map(function(c){return ' <span class="chip '+(c==='showroom upgrade'?'g':'')+'">'+esc(c)+'</span>'}).join('')+'</div>'+gphHint(p)+
   '<div class="why small"><b>Why:</b> '+p.why.map(esc).join(' · ')+'</div>'+
-  '<div class="nss"><span>'+esc(p.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>'+cbBtns('deal',p.ref)+fuBox('deal',p.ref)+'</div>'}
+  '<div class="nss"><span>'+esc(p.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>'+ffStep(p,'deal')+cbBtns('deal',p.ref)+fuBox('deal',p.ref)+'</div>'}
 /* Garage placeholder (Andrew, Oct 26, 2026): ClosetWare's "Garage" project type is often a catch-all, so cards whose type is Garage carry
    this hint; their scripts are neutral unless the booking note clearly names one room (nextsteps.py room_for). */
 var GPH_NOTE='ClosetWare often shows Garage as a placeholder project type. Check your own records before mentioning a specific room.';
@@ -550,9 +581,9 @@ function pcCard(c,P){return '<div class="nsd pc" data-pref="'+esc(c.ref)+'"><div
     '<div class="why small"><b>Why this person:</b> '+esc(c.why)+(c.fit?' <span class="chip">'+esc(c.fit)+'</span>':'')+'</div>'+
     (c.text?'<div class="small nslab"><b>📱 Text (ready to send)</b></div><div class="nss nstx"><span>'+esc(c.text)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>':'')+
     (c.lowes&&P.lowes&&P.lowes.on!==false&&P.lowes.terms_note?'<div class="fine nslw">For you only, not in the text: '+esc(P.lowes.terms_note)+'</div>':'')+
-    '<details class="nscall"><summary class="small"><b>📞 Call version</b></summary><div class="nss"><span>'+esc(c.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></details>'+cbBtns('pc',c.ref)+fuBox('pc',c.ref)+'<button type="button" class="cbdnc" data-ref="'+esc(c.ref)+'">🚫 Don\'t contact</button></div>'}
+    ffStep(c,c.lost?'lost':(c.inact?'inact':'pc'),P)+'<details class="nscall"><summary class="small"><b>📞 Call version</b></summary><div class="nss"><span>'+esc(c.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></details>'+cbBtns('pc',c.ref)+fuBox('pc',c.ref)+'<button type="button" class="cbdnc" data-ref="'+esc(c.ref)+'">🚫 Don\'t contact</button></div>'}
 function nsMonth(a){var m=['January','February','March','April','May','June','July','August','September','October','November','December'][(+String(a||'').slice(5,7)||new Date().getMonth()+1)-1];return m||'this month'}
-function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N.deals||[];
+function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N.deals||[];FF_P=P;FF_ME=String(x.name||'').split(' ')[0];if(/^test$/i.test(FF_ME))FF_ME='';
   h+=nsPromo(P);
   h+='<div class="grid">'+tile('In play',m0(N.usd),N.n+' open quote'+(N.n===1?'':'s')+' · every one is winnable','neu')+tile('Due today',n0(N.today_n),'next steps to do today ('+N.per_day+' a day, biggest $ first)',N.today_n?'neu':'neu')+
    tile('Quiet 14+ days',n0(N.nodate_n),m0(N.nodate_usd)+' with no dated note in 14+ days',N.nodate_n?'neg':'pos')+tile('Showroom invites',n0(ds.filter(function(p){return p.showroom&&p.usd>=5000}).length),'quotes over $5,000 with a showroom visit in the next step','neu')+'</div>';
@@ -578,7 +609,7 @@ function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N
      '<div id="inl"></div><p class="small hidden" id="inend"></p></div>';
    out+=sec('inact','👥 Clients from designers no longer here',ih)}
   /* Lost but winnable (Andrew approved, Nov 11, 2026): your own lost quotes (1-18 months), not bought since, no open quote */
-  if(N.lost){var lh='<div class="card"><p class="small" style="margin:0 0 8px">'+((N.lost||[]).length+(N.lost_res||[]).length?'<b>Quotes you lost 1-18 months ago</b> for no decision, budget or timing. They have not bought since and have no open quote, so a friendly, no-pressure check-in can win them back. Each card has a soft text (no discounts, no specials) and a call version. Showing <span id="lon">'+Math.min(N.lost_show||10,(N.lost||[]).length+(N.lost_res||[]).length)+'</span> at a time; the next one moves up when you log a contact.':'No lost quotes to revisit right now.')+'</p>'+
+  if(N.lost){var lh='<div class="card"><p class="small" style="margin:0 0 8px">'+((N.lost||[]).length+(N.lost_res||[]).length?'<b>Quotes you lost 1-18 months ago</b> for no decision, budget or timing. They have not bought since and have no open quote, so a friendly, no-pressure check-in can win them back. Each card has a soft text (no discounts, no specials) and a call version.'+(ffOn(P)?' Through Dec 31 each card also has a 🎉 Friends & Family next step.':'')+' Showing <span id="lon">'+Math.min(N.lost_show||10,(N.lost||[]).length+(N.lost_res||[]).length)+'</span> at a time; the next one moves up when you log a contact.':'No lost quotes to revisit right now.')+'</p>'+
      ((N.lost||[]).length?'<p class="small cbhelp">Same buttons as your past clients: tap what you did and it is logged; they leave this list for '+(N.pc_quiet||60)+' days. A dated follow-up note brings them back on that day. 🚫 Don\'t contact takes the household off every list.</p>':'')+
      '<div id="lol"></div><p class="small hidden" id="loend"></p></div>';
    out+=sec('lost','🔁 Lost but winnable',lh)}
@@ -764,8 +795,8 @@ function nsOwner(){var N=D.owner&&D.owner.ns;if(!N)return'';var pc=N.promo_cnt,m
   h+=inOwner(N.inact);
   h+=fuOwner();
   /* Oct 29, 2026 (Andrew): owner page no longer shows the Do-not-contact roll-up (nsDnc kept unused; all DNC blocking/masking logic unchanged) */
-  h+=nsPromo(N.promo,true);
-  h+='<p class="small" style="margin:4px 2px 10px">📱 The past-client text template on every designer page is modeled on Angela\'s past-client text (Teams Design Team chat, Oct 22). Our promotions ended Nov 11, 2026, so no text or script mentions a special or offer (the $50 referral thank-you stays), and there are no phone numbers (clients already have your cell because you text from it).</p>';
+  h+=nsPromo(N.promo,true);FF_P=N.promo;
+  h+='<p class="small" style="margin:4px 2px 10px">📱 The past-client text template on every designer page is modeled on Angela\'s past-client text (Teams Design Team chat, Oct 22). '+(ffOn(N.promo)?'The ready-to-send texts stay offer-free; through Dec 31 each designer card also shows a separate 🎉 Friends & Family next step and script (not on Costco or Lowe\'s cards). The $50 referral thank-you stays, and there are no phone numbers':'Our promotions ended Nov 11, 2026, so no text or script mentions a special or offer (the $50 referral thank-you stays), and there are no phone numbers')+' (clients already have your cell because you text from it).</p>';
   h+='<p class="fine">$ at risk = open quote with no dated note in 14+ days AND no dated next step (note date, follow-up date, booked appointment or open task). Lowe\'s customers are identified by ClosetWare lead source type LOWES (Category "Lowes Store"). Rules and sources: playbook section 15. '+N.limits.map(esc).join(' ')+'</p>';
   return sec('nsown','💼 Close this month: 30,000-ft view',h)}
 /* owner: clients from designers no longer here + deep-history fallback (Oct 28, 2026). Real counts from the build only. */
