@@ -302,3 +302,10 @@ body.psopen{overflow:hidden}
 .ffban{border-left:5px solid #c2185b;background:#fff5f8}.ffban .ffoff{font-weight:600;margin:4px 0 2px}.chip.ffend{background:#c2185b;color:#fff}
 .ffsc{margin-top:6px}.ffsc .nss{margin-top:2px}
 .ffstep{margin-top:6px;border-left:3px solid #c2185b;padding:2px 0 2px 8px}.ffstep summary{cursor:pointer}.ffrt{color:#7a5a00;border-left-color:#d9a400}
+/* Current promotion box + card steps (Nov 18, 2026); wording comes only from the encrypted bundle */
+.cpban{border-left:5px solid #12263f;background:#f6f8fc}.cpban .cpoff{font-weight:600;margin:4px 0 6px}.chip.cpend{background:#12263f;color:#f2c94c}
+.cptiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:6px;margin:4px 0}.cpt{background:#fff;border:1px solid #d6dbe6;border-radius:8px;padding:6px 8px;display:flex;flex-direction:column}.cpt b{color:#12263f;font-size:1.05em}.cpt span{font-size:.82em;color:#5a6478}
+.cpd{margin-top:6px}.cpd summary{cursor:pointer}.cpas{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}.cpas .cpimg{flex-basis:100%}
+.cpstep{margin-top:6px;border-left:3px solid #12263f;padding:2px 0 2px 8px}.cpstep summary{cursor:pointer}.cpstep .cpq{margin:4px 0}
+.cpcap{margin:6px 0}.cpcap textarea{width:100%;box-sizing:border-box;font:inherit;font-size:.86em;border:1px solid #d6dbe6;border-radius:6px;padding:6px;background:#fff;resize:vertical}.cpcap .cpcp{margin-top:3px}
+.cpsimg img{display:block;max-width:100%;max-height:420px;margin:6px 0;border-radius:6px}.cppost{border-top:1px dashed #d6dbe6;padding-top:4px}
