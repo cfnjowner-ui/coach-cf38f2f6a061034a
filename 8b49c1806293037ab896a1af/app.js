@@ -575,7 +575,7 @@ function cpAssets(p){var A=p.assets;if(!A||!(A.items||[]).length)return'';return
 function cpBanner(P,compact){if(!cpOn(P))return'';var p=P.cp;
   var tiers='<div class="cptiers">'+(p.tiers||[]).map(function(t){return '<div class="cpt"><b>Save '+m0(t.save)+'</b><span>'+m0(t.lo)+(t.hi?' to '+m0(t.hi):' and up')+'</span></div>'}).join('')+'</div>';
   return '<div class="card cpban" id="cpban"><div class="nsp"><span class="nsi">'+esc(p.icon||'')+'</span><div style="min-width:0;flex:1"><b>'+esc(p.name)+'</b> <span class="chip cpend">'+esc(p.when_chip)+'</span>'+
-   '<div class="cpoff">'+esc(p.headline)+'</div>'+tiers+'<div class="fine">'+esc(p.tier_note)+'</div>'+
+   (p.today_note&&p.today_note.day&&cpNow().slice(0,10)===p.today_note.day?'<div class="cptoday" id="cptoday">⚠️ '+esc(p.today_note.text)+'</div>':'')+'<div class="cpoff">'+esc(p.headline)+'</div>'+tiers+'<div class="fine">'+esc(p.tier_note)+'</div>'+
    (compact?'':'<div class="small nslab"><b>Script</b></div><div class="nss"><span>'+esc(p.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>'+
    '<div class="small" style="margin-top:6px"><b>Who to call first:</b> '+esc(p.who)+'</div>')+
    '<details class="cpd"'+(compact?'':' open')+'><summary class="small"><b>The rules</b></summary><ul class="tight small">'+(p.rules||[]).map(function(r){return '<li><b>'+esc(r[0])+'</b> '+esc(r[1])+'</li>'}).join('')+'</ul></details>'+
