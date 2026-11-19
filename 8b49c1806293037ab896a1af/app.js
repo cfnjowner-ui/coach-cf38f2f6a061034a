@@ -90,7 +90,8 @@ function designer(x){var s=x.snap,g=x.goal,n=x.notes,T=D.team,tm=T.mtd,M=D.meta,
   if(D.kind==='owner')h+='<a class="back" href="#people">← All designers</a>';
   if(x.test)h+='<div class="card" style="border-left:5px solid #c47f00;background:#fff8e6"><b>🧪 TEST PAGE</b><p class="small" style="margin:6px 0 0">'+esc(x.test.label||x.name)+': a copy of '+esc(x.test.mirror||'a designer')+'\'s real page for testing. Activity entries saved here are sent to the Activity log Sheet with Designer = "'+esc(x.act_who||x.name)+'" so they are easy to filter and delete. Not counted in team totals.</p></div>';
   h+='<div class="card hero"><div class="m">'+esc(M.month)+' · day '+M.day+' of '+M.dim+' · '+M.days_left+' days left</div><h2>'+esc(x.name)+'</h2><div class="m">Personal coaching page · coach, not judge: every number compares you fairly to the team for the leads you run.</div>'+psBtn(x)+'</div>';
-  h+='<div class="minis"><a href="#wins">Wins</a><a href="#close">Close this month</a><a href="#pastc">Past clients</a><a href="#inact">Former designers&#39; clients</a><a href="#activity">My activity</a><a href="#snap">Snapshot</a><a href="#goal">Goal</a><a href="#notes">Next steps</a><a href="#focus">Focus</a><a href="#week">This week</a><a href="#learn">Library</a></div>';
+  h+='<div class="minis"><a href="#promos">Promotions</a><a href="#wins">Wins</a><a href="#close">Close this month</a><a href="#pastc">Past clients</a><a href="#inact">Former designers&#39; clients</a><a href="#activity">My activity</a><a href="#snap">Snapshot</a><a href="#goal">Goal</a><a href="#notes">Next steps</a><a href="#focus">Focus</a><a href="#week">This week</a><a href="#learn">Library</a></div>';
+  h+=promoSec(x,x.ns&&x.ns.promo,false);
   h+=fuSection(x);
   /* wins first */
   h+=sec('wins','🌟 Wins & streaks','<div class="wins">'+x.wins.map(function(w){return '<div class="win"><div class="i">'+w.icon+'</div><div><b>'+esc(w.t)+'</b><span>'+esc(w.d)+'</span></div></div>'}).join('')+'</div>');
@@ -234,6 +235,7 @@ function nsRings(){var O=D.owner,T=D.team,tn=T.notes,sc=Math.round(tn.score);
   return '<div class="card" id="nsrings"><b>📝 Next-step compliance roll-up</b> <span class="small">lowest first · tap a ring to open that page</span>'+big+g+nl+'<p class="fine">Same score and colors as each designer\'s ring: green 75+, amber 50–74, red under 50; gray = fewer than 3 open opps (too small to judge). Caption totals are the whole team; small rings count each roster designer\'s own open opps.</p></div>'}
 function team(){var O=D.owner,T=D.team,M=D.meta,t=O.tot,h='';
   h+='<div class="card hero"><div class="m">'+esc(M.month)+' · day '+M.day+' of '+M.dim+' · owner view (all designers)</div><h2>Team coaching roll-up</h2><div class="m">Positive first, then where help pays off most. Drafts only: nothing is sent.</div></div>';
+  h+=promoSec(null,O.ns&&O.ns.promo,true);
   h+='<div id="gp">'+goalPanel()+'</div>';
   h+=nsRings();
   h+=nsOwner();
@@ -617,15 +619,16 @@ function lwQuote(P,usd){var c=P.lw,tp=c.tpl||{},T=c.tiers||[],t=null,n=null,s;if
   for(var i=0;i<T.length;i++){if(usd>=T[i].lo)t=T[i];else{n=T[i];break}}
   s=t?cpFill(tp.q_tier,{q:m0(usd),save:m0(t.save),pays:m0(usd-t.save)}):cpFill(tp.q_under,{q:m0(usd)});
   if(n)s+=' '+cpFill(tp.q_next,{gap:m0(n.lo-usd),nsave:m0(n.save),nlo:m0(n.lo)});return s}
-function lwStep(c,P){P=P||CP_P;if(!c||!c.lowes||c.k==='signed'||!lwOn(P))return'';var p=P.lw,sc=(p.scripts||[])[1];
-  return '<details class="lwstep"><summary class="small"><b>'+esc(p.icon||'')+' Next step:</b> '+esc(p.lab)+'</summary><div class="small cpq">'+esc(lwQuote(P,+c.usd))+'</div>'+
-   (sc?'<div class="small nslab"><b>'+esc(sc[0])+'</b></div><div class="nss"><span>'+esc(sc[1])+'</span><button class="btn ghost cpcp" type="button">Copy</button></div>':'')+'<div class="fine">'+esc((p.rules||[])[1]?p.rules[1][1]:'')+'</div></details>'}
-function lwBanner(P,compact){if(!lwOn(P)||(!compact&&!LW_HAS))return'';var p=P.lw,A=(p.assets&&p.assets.items)||[];
+function lwStep(c,P){P=P||CP_P;if(!c||!c.lowes||c.k==='signed'||!lwOn(P))return'';var p=P.lw,T=p.tiers||[],u=+c.usd,t=null;for(var i=0;i<T.length;i++)if(u>=T[i].lo)t=T[i];
+  var tx=t?prFill(p.t_deal_s,c,{save:m0(t.save)}):prFill(p.t_deal_g,c);
+  return '<details class="lwstep"><summary class="small"><b>'+esc(p.icon||'')+' Next step:</b> '+esc(p.lab)+'</summary><div class="small cpq">'+esc(lwQuote(P,u))+'</div>'+
+   prTxt(tx)+prLinks(c,tx,p.em_subj,p.em_tail)+'<div class="fine">'+esc((p.rules||[])[1]?p.rules[1][1]:'')+'</div></details>'}
+function lwBanner(P,compact){if(!lwOn(P))return'';var p=P.lw,A=(p.assets&&p.assets.items)||[];
   var tiers='<div class="cptiers">'+(p.tiers||[]).map(function(t){return '<div class="cpt"><b>Save '+m0(t.save)+'</b><span>'+m0(t.lo)+(t.hi?'–$'+Number(t.hi).toLocaleString('en-US',{minimumFractionDigits:(t.hi%1?2:0),maximumFractionDigits:2}):'+')+'</span></div>'}).join('')+'</div>';
   var sc=function(t,s){return '<div class="small nslab"><b>'+esc(t)+'</b></div><div class="nss"><span>'+esc(s)+'</span><button class="btn ghost cpcp" type="button">Copy</button></div>'};
   return '<div class="card lwban" id="lwban"><div class="nsp"><span class="nsi">'+esc(p.icon||'')+'</span><div style="min-width:0;flex:1"><b>'+esc(p.name)+'</b> <span class="chip lwend">'+esc(p.when_chip)+'</span>'+
    '<div class="cpoff">'+esc(p.headline)+'</div>'+tiers+'<div class="fine">'+esc(p.tier_note)+'</div>'+
-   (compact?'':sc('Consistent customer wording',p.wording)+'<div class="small" style="margin-top:6px">Your Lowe\'s open quotes below carry a '+esc(p.icon||'')+' step with the tier for that proposal.</div>')+
+   (compact?'':sc('Consistent customer wording',p.wording)+'<div class="small" style="margin-top:6px">Lowe\'s cards on this page (open quotes, past clients, lost quotes) carry a '+esc(p.icon||'')+' step; open quotes show the tier for that proposal.</div>')+
    '<details class="cpd"'+(compact?'':' open')+'><summary class="small"><b>How it works</b></summary><ul class="tight small">'+(p.rules||[]).map(function(r){return '<li><b>'+esc(r[0])+'</b> '+esc(r[1])+'</li>'}).join('')+'</ul></details>'+
    '<details class="cpd"><summary class="small"><b>Scripts</b> (texts, call, voicemail, final days)</summary>'+(p.scripts||[]).map(function(s){return sc(s[0],s[1])}).join('')+'</details>'+
    '<details class="cpd"><summary class="small"><b>Common questions</b></summary><ul class="tight small">'+(p.faq||[]).map(function(f){return '<li><b>'+esc(f[0])+'</b> '+esc(f[1])+'</li>'}).join('')+'</ul></details>'+
@@ -633,6 +636,47 @@ function lwBanner(P,compact){if(!lwOn(P)||(!compact&&!LW_HAS))return'';var p=P.l
    (A.length?'<div class="cpas small"><b>Files:</b> '+A.map(function(it){return '<button type="button" class="btn ghost lwa" data-id="'+esc(it.id)+'">'+esc(it.label)+'</button>'}).join(' ')+'<div class="cpimg"></div></div>':'')+
    (p.video?'<div class="small" style="margin-top:6px"><a href="'+esc(p.video)+'" target="_blank" rel="noopener">▶ Training video for CSRs and designers</a></div>':'')+
    '</div></div></div>'}
+/* ── Promotions section (Nov 19, 2026; Andrew: "make these promos clear in a promo section on each designer Coach page"). One section near the
+   top of every designer page (and the owner page) listing the promotions running now, each with its own details. Wording, dates and terms
+   come ONLY from the encrypted bundle (P.cp, P.lw, P.cw), present only inside each window at build time; cpOn/lwOn/cwOn also check the
+   browser's ET clock. Card steps stay source-correct: core cards only Spend & Save (🏷️), Lowe's cards only Lowe's (🏠), Costco only Costco (🛒). */
+function cwOn(P){var c=P&&P.cw,t=cpNow();return !!(c&&c.on===true&&c.start&&c.end&&t&&t>=c.start&&t<=c.end)}
+function prFill(s,c,o){o=o||{};return cpFill(s,{nm:(c&&c.name)||'there',me:FF_ME||'[your name]',space:c?ffRoom(c):'[space]',save:o.save||'[savings amount]'})}
+function prLinks(c,txt,subj,tail){var h=[];if(!c)return'';
+  if(c.ph)h.push('<a class="btn ghost prl" href="sms:'+(String(c.ph).length===10?'+1'+c.ph:c.ph)+'?&body='+encodeURIComponent(txt)+'">💬 Text</a>');
+  if(c.em&&!c.eo)h.push('<a class="btn ghost prl" href="mailto:'+encodeURI(c.em)+'?subject='+encodeURIComponent(subj||'')+'&body='+encodeURIComponent(txt+(tail?prFill(tail,c):''))+'">✉️ Email</a>');
+  else if(c.em&&c.eo)h.push('<span class="ctn">opted out of marketing email: no email</span>');
+  if(!c.ph&&!(c.em&&!c.eo))h.push('<span class="ctn">no phone or usable email on file</span>');
+  return '<div class="prls">'+h.join(' ')+'</div>'}
+function prTxt(t){return '<div class="nss"><span>'+esc(t)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>'}
+function lwKindT(p,c){return c.lost?p.t_lost:(c.inact?p.t_inact:p.t_past)}
+function lwPc(c,P){P=P||CP_P;if(!c||!c.lowes||!lwOn(P))return'';var p=P.lw,t=prFill(lwKindT(p,c),c);
+  return '<details class="lwstep"><summary class="small"><b>'+esc(p.icon||'')+' Lowe’s promotion:</b> '+esc(c.lost?p.lab_lost:p.lab_pc)+'</summary>'+prTxt(t)+prLinks(c,t,p.em_subj,p.em_tail)+'<div class="fine">'+esc(p.tier_note)+'</div></details>'}
+function cwStep(c,kind,P){P=P||CP_P;if(!c||!c.rt||c.lowes||!cwOn(P))return'';if(kind==='deal'&&c.k==='signed')return'';var p=P.cw,t=prFill(kind==='deal'?p.t_deal:(c.lost?p.t_lost:(c.inact?p.t_inact:p.t_past)),c);
+  return '<details class="cwstep"><summary class="small"><b>'+esc(p.icon||'')+' Next step:</b> '+esc(p.lab)+'</summary>'+prTxt(t)+prLinks(c,t,p.em_subj,p.em_tail)+'<div class="fine">'+esc(p.rule)+'</div></details>'}
+function lwPool(x){var N=(x&&x.ns)||{},st={pc:{},dnc:{}};try{st=cbState(x)}catch(e){}var out=[],seen={};
+  ['past','past_res','inact','inact_res','lost','lost_res'].forEach(function(k){(N[k]||[]).forEach(function(c){if(c&&c.lowes&&!seen[c.ref]&&!st.pc[c.ref]&&!st.dnc[c.ref]){seen[c.ref]=1;out.push(c)}})});return out}
+function lwRows(x,P){var p=P.lw,L=lwPool(x);if(!L.length)return '<p class="small">No Lowe’s past or lost clients to reach right now (contacted in the last 60 days, Don’t contact, or none on file).</p>';
+  return '<p class="small"><b>'+L.length+' Lowe’s client'+(L.length===1?'':'s')+' to reach</b> (yours, plus Lowe’s clients of former designers now on your page). '+esc(p.pool_note)+'</p><div class="lwlist">'+
+   L.map(function(c,i){var t=prFill(lwKindT(p,c),c),lab=c.lost?'Lost quote, '+c.sold:(c.inact?'From a former designer':'Your past client, sold '+c.sold);
+    return '<div class="lwrow'+(i>=10?' lwmore':'')+'"><div><b>'+nsWho(c)+'</b> <span class="ref">'+esc(c.ref)+'</span> <span class="chip g">'+esc(lab)+'</span></div>'+ctLine(c,true)+
+     '<details><summary class="small">Message</summary>'+prTxt(t)+'</details>'+prLinks(c,t,p.em_subj,p.em_tail)+cbBtns('pc',c.ref)+'</div>'}).join('')+'</div>'+
+   (L.length>10?'<button class="btn ghost lwall" type="button" style="width:100%">Show all '+L.length+'</button>':'')}
+function cwBox(P,compact){if(!cwOn(P))return'';var p=P.cw;
+  return '<div class="card cwban" id="cwban"><div class="nsp"><span class="nsi">'+esc(p.icon||'')+'</span><div style="min-width:0;flex:1"><b>'+esc(p.name)+'</b> <span class="chip cwend">'+esc(p.when_chip)+'</span>'+
+   '<div class="cpoff">'+esc(p.headline)+'</div><div class="small"><b>Who:</b> '+esc(p.who)+'.</div><div class="fine">'+esc(p.rule)+'</div>'+
+   (compact?'':'<div class="small" style="margin-top:6px">Costco cards on this page carry a '+esc(p.icon)+' step with a ready text and email.</div><details class="cpd"><summary class="small"><b>Messages</b></summary>'+
+   '<div class="small nslab"><b>Open quote</b></div>'+prTxt(prFill(p.t_deal,null))+'<div class="small nslab"><b>Past client</b></div>'+prTxt(prFill(p.t_past,null))+'<div class="small nslab"><b>Lost quote</b></div>'+prTxt(prFill(p.t_lost,null))+'</details>')+
+   '</div></div></div>'}
+function promoSec(x,P,compact){P=P||{};CP_P=P;FF_P=P;if(x)FF_ME=String(x.name||'').split(' ')[0];if(/^test$/i.test(FF_ME))FF_ME='';var rows=[],cnt=function(f){var N=(x&&x.ns)||{},n=0;['deals','past','past_res','inact','inact_res','lost','lost_res'].forEach(function(k){(N[k]||[]).forEach(function(c){if(f(c)&&!(k==='deals'&&c.k==='signed'))n++})});return n};
+  var row=function(id,ic,name,who,chip,head,body,n){return '<details class="prm" id="'+id+'"><summary><span class="prmi">'+esc(ic)+'</span><span class="prmt"><b>'+esc(name)+'</b> <span class="chip">'+esc(chip)+'</span><br><span class="small"><b>For:</b> '+esc(who)+(x?' · '+n+' on your page':'')+'</span><br><span class="small">'+esc(head)+'</span></span></summary><div class="prmb">'+body+'</div></details>'};
+  if(cpOn(P))rows.push(row('pr_cp',P.cp.icon,P.cp.name,'core clients only (not Costco or Lowe’s)',P.cp.when_chip,P.cp.headline,cpBanner(P,compact),cnt(function(c){return !c.rt})));
+  if(lwOn(P))rows.push(row('pr_lw',P.lw.icon,P.lw.name,'Lowe’s clients (past, current and new)',P.lw.when_chip,P.lw.headline,lwBanner(P,compact)+(x&&!compact?'<div class="card"><b>📣 Lowe’s outreach list</b>'+lwRows(x,P)+'</div>':''),cnt(function(c){return c.lowes})));
+  if(cwOn(P))rows.push(row('pr_cw',P.cw.icon,P.cw.name,'Costco clients',P.cw.when_chip,P.cw.headline,cwBox(P,compact),cnt(function(c){return c.rt&&!c.lowes})));
+  if(!rows.length)return'';
+  return sec('promos','🎯 Promotions','<p class="small" style="margin:0 0 6px">Running now. Each client card shows only the promotion that fits that client’s lead source. Tap a promotion for its terms, scripts and files.</p>'+rows.join(''))}
+document.addEventListener('click',function(ev){var t=ev.target;if(!t.closest)return;var a=t.closest('.lwall');if(a){ev.preventDefault();var L=a.previousElementSibling;if(L)L.classList.add('lwopen');a.remove();return}
+  var b=t.closest('.lwrow .cbt');if(b){var r=b.closest('.lwrow');setTimeout(function(){r.classList.add('lwdone')},50)}});
 function lwPD(){if(!D)return null;var x=(D.designers||[])[0];return (x&&x.ns&&x.ns.promo)||(D.owner&&D.owner.ns&&D.owner.ns.promo)||null}
 document.addEventListener('click',function(ev){var t=ev.target.closest&&ev.target.closest('.lwa');if(!t)return;ev.preventDefault();var P=lwPD();if(!lwOn(P))return;
   var A=P.lw.assets,it=(A.items||[]).filter(function(i){return i.id===t.getAttribute('data-id')})[0];if(!it||t.disabled)return;t.disabled=true;var lb=t.textContent;t.textContent='Opening…';
@@ -643,7 +687,7 @@ document.addEventListener('click',function(ev){var t=ev.target.closest&&ev.targe
     if(/^image\//.test(it.mime)){var box=a.parentNode.querySelector('.cpimg');if(box)box.innerHTML='<img alt="" src="'+u+'" style="width:100%;max-width:520px;margin-top:6px;border-radius:6px">'}})
   .catch(function(){t.disabled=false;t.textContent=lb+' (could not open, try again)'})});
 /* Nov 11, 2026: promotions ended; a promo shows only while its on flag is true (nextsteps.PROMO). The referral thank-you always shows. */
-function nsPromo(P,compact){P=P||{};var s=P.showroom,l=P.lowes,on=function(o){return o&&o.on!==false};var fb=cpBanner(P,compact)+lwBanner(P,compact)+ffBanner(P,compact);if(!on(s)&&!on(l)&&!P.referral)return fb;return fb+'<div class="card nspromo">'+(on(s)?'<div class="nsp"><span class="nsi">🍂</span><div><b>'+esc(s.name)+'</b><div class="small">'+esc(s.text)+'</div></div></div>':'')+
+function nsPromo(P,compact){P=P||{};var s=P.showroom,l=P.lowes,on=function(o){return o&&o.on!==false};var fb=ffBanner(P,compact);   /* Nov 19, 2026: Spend & Save / Lowe's / Costco boxes moved to the Promotions section (promoSec) */if(!on(s)&&!on(l)&&!P.referral)return fb;return fb+'<div class="card nspromo">'+(on(s)?'<div class="nsp"><span class="nsi">🍂</span><div><b>'+esc(s.name)+'</b><div class="small">'+esc(s.text)+'</div></div></div>':'')+
   (on(l)?'<div class="nsp"><span class="nsi">🏠</span><div><b>'+esc(l.name)+'</b><div class="small">'+esc(l.text)+(compact?'':' Deals and past clients that qualify carry the "Lowe\'s 18-mo" tag.')+(l.terms_note?'<br><i>For you, not for clients: '+esc(l.terms_note)+'</i>':'')+'</div></div></div>':'')+
   (P.referral?'<div class="nsp"><span class="nsi">🎁</span><div><b>'+esc(P.referral.name)+'</b><div class="small">'+esc(P.referral.text)+'</div></div></div>':'')+'</div>'}
 function nsCard(p,T){var tod=p.due===T,dc='';
@@ -652,7 +696,7 @@ function nsCard(p,T){var tod=p.due===T,dc='';
   '<div class="nsa"><span class="chip '+dc+'">'+(tod?'Due today':'By '+esc(p.due_l))+'</span><b>'+esc(p.label)+'</b></div>'+
   '<div class="small nsm">'+esc(p.room)+' · '+esc(p.stage)+' · '+esc(p.src)+(p.chips||[]).map(function(c){return ' <span class="chip '+(c==='showroom upgrade'?'g':'')+'">'+esc(c)+'</span>'}).join('')+'</div>'+gphHint(p)+
   '<div class="why small"><b>Why:</b> '+p.why.map(esc).join(' · ')+'</div>'+
-  '<div class="nss"><span>'+esc(p.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>'+ffStep(p,'deal')+cpStep(p,'deal')+lwStep(p)+cbBtns('deal',p.ref)+fuBox('deal',p.ref)+'</div>'}
+  '<div class="nss"><span>'+esc(p.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>'+ffStep(p,'deal')+cpStep(p,'deal')+lwStep(p)+cwStep(p,'deal')+cbBtns('deal',p.ref)+fuBox('deal',p.ref)+'</div>'}
 /* Garage placeholder (Andrew, Oct 26, 2026): ClosetWare's "Garage" project type is often a catch-all, so cards whose type is Garage carry
    this hint; their scripts are neutral unless the booking note clearly names one room (nextsteps.py room_for). */
 var GPH_NOTE='ClosetWare often shows Garage as a placeholder project type. Check your own records before mentioning a specific room.';
@@ -668,7 +712,7 @@ function pcCard(c,P){return '<div class="nsd pc" data-pref="'+esc(c.ref)+'"><div
     '<div class="why small"><b>Why this person:</b> '+esc(c.why)+(c.fit?' <span class="chip">'+esc(c.fit)+'</span>':'')+'</div>'+
     (c.text?'<div class="small nslab"><b>📱 Text (ready to send)</b></div><div class="nss nstx"><span>'+esc(c.text)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>':'')+
     (c.lowes&&P.lowes&&P.lowes.on!==false&&P.lowes.terms_note?'<div class="fine nslw">For you only, not in the text: '+esc(P.lowes.terms_note)+'</div>':'')+
-    ffStep(c,c.lost?'lost':(c.inact?'inact':'pc'),P)+cpStep(c,c.lost?'lost':(c.inact?'inact':'pc'),P)+'<details class="nscall"><summary class="small"><b>📞 Call version</b></summary><div class="nss"><span>'+esc(c.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></details>'+cbBtns('pc',c.ref)+fuBox('pc',c.ref)+'<button type="button" class="cbdnc" data-ref="'+esc(c.ref)+'">🚫 Don\'t contact</button></div>'}
+    ffStep(c,c.lost?'lost':(c.inact?'inact':'pc'),P)+cpStep(c,c.lost?'lost':(c.inact?'inact':'pc'),P)+lwPc(c,P)+cwStep(c,c.lost?'lost':(c.inact?'inact':'pc'),P)+'<details class="nscall"><summary class="small"><b>📞 Call version</b></summary><div class="nss"><span>'+esc(c.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></details>'+cbBtns('pc',c.ref)+fuBox('pc',c.ref)+'<button type="button" class="cbdnc" data-ref="'+esc(c.ref)+'">🚫 Don\'t contact</button></div>'}
 function nsMonth(a){var m=['January','February','March','April','May','June','July','August','September','October','November','December'][(+String(a||'').slice(5,7)||new Date().getMonth()+1)-1];return m||'this month'}
 function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N.deals||[];FF_P=P;CP_P=P;LW_HAS=ds.some(function(p){return p.lowes&&p.k!=='signed'});FF_ME=String(x.name||'').split(' ')[0];if(/^test$/i.test(FF_ME))FF_ME='';
   h+=nsPromo(P);

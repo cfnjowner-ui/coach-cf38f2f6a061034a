@@ -312,3 +312,10 @@ body.psopen{overflow:hidden}
 .cptoday{margin:6px 0;padding:6px 10px;border-radius:6px;background:#fff4d6;border:1px solid #e0b100;font-weight:700;color:#5a4300}
 /* Lowe's partner promotion box + card step (Nov 19, 2026); wording only from the encrypted bundle */
 .lwban{border-left:5px solid #004990;background:#f3f7fc}.chip.lwend{background:#004990;color:#fff}.lwstep{margin-top:6px;border-left:3px solid #004990;padding:2px 0 2px 8px}.lwstep summary{cursor:pointer}
+/* Promotions section (Nov 19, 2026): one row per running promotion; Costco step; Lowe's outreach list */
+#promos .prm{border:1px solid #d9dee6;border-radius:10px;margin:6px 0;background:#fff}#promos .prm>summary{display:flex;gap:10px;align-items:flex-start;padding:10px;cursor:pointer;list-style:none}
+#promos .prm>summary::-webkit-details-marker{display:none}#promos .prmi{font-size:1.5em;line-height:1}#promos .prmt{flex:1;min-width:0}#promos .prm[open]>summary{border-bottom:1px solid #eef1f5}#promos .prmb{padding:6px}
+#pr_lw{border-left:5px solid #004990}#pr_cw{border-left:5px solid #e31837}#pr_cp{border-left:5px solid #2e7d32}
+.cwban{border-left:5px solid #e31837;background:#fdf4f5}.chip.cwend{background:#e31837;color:#fff}.cwstep{margin-top:6px;border-left:3px solid #e31837;padding:2px 0 2px 8px}.cwstep summary{cursor:pointer}
+.prls{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}.prl{text-decoration:none}
+.lwlist .lwrow{border-top:1px solid #eef1f5;padding:8px 0}.lwlist .lwrow.lwmore{display:none}.lwlist.lwopen .lwrow.lwmore{display:block}.lwrow.lwdone{opacity:.45}
