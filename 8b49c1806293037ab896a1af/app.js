@@ -70,6 +70,16 @@ function cls(v,ref,band,lowerBetter){if(v==null||ref==null||isNaN(v)||isNaN(ref)
 function toast(t){var e=$('#toast');e.textContent=t;e.classList.remove('hidden');setTimeout(function(){e.classList.add('hidden')},1800)}
 function copy(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){toast('Copied')},function(){toast('Select and copy the text')})}
 function tile(k,v,s,c){return '<div class="tile"><div class="k">'+k+'</div><div class="v '+(c||'neu')+'">'+v+'</div>'+(s?'<div class="s">'+s+'</div>':'')+'</div>'}
+/* In-page links (Nov 19, 2026 3:20 PM ET fix). On the OWNER login the URL hash is the page router (window.onhashchange -> route()), so a plain
+   <a href="#lwtab"> on a designer page changed the hash to "lwtab", which route() does not know, and it fell back to the team rollup. Every
+   "#section" link inside the page (client tabs, Promotions-box "Open the ... tab" links, nav chips, in-card links) now scrolls to that section
+   on the SAME page without touching the hash. Real routes (#people, #team, #d/<slug>, owner nav) still go through the router. */
+var ROUTES={team:1,people:1,topics:1,queue:1,lib:1,how:1};
+function jumpTo(id){var t=document.getElementById(id);if(!t)return false;for(var e=t;e;e=e.parentElement){if(e.tagName==='DETAILS')e.open=true}
+  if(t.tagName==='DETAILS')t.open=true;window.scrollTo({top:t.getBoundingClientRect().top+window.scrollY-110,behavior:'smooth'});return true}
+document.addEventListener('click',function(ev){var a=ev.target.closest&&ev.target.closest('a[href^="#"]');if(!a||ev.defaultPrevented)return;
+  var id=a.getAttribute('href').slice(1);if(!id||ROUTES[id]||id.indexOf('d/')===0||id.indexOf('k=')===0)return;
+  ev.preventDefault();jumpTo(id)});   // a missing section (e.g. no previous designers' clients) stays put instead of falling to the rollup
 function sec(id,title,html){return '<section class="sec" id="'+id+'"><h2>'+title+'</h2>'+html+'</section>'}
 /* ── router ── */
 function start(){if(!D||D.kind!=='owner')PSK=null;$('#btnOut').classList.remove('hidden');var so=$('#signout');if(so)so.classList.remove('hidden');ACT.setForm(D.meta.activity_form||null);ACT.syncAll(D.meta.activity_form,window.ACT_ONSYNC);$('#sub').textContent='Data as of '+D.meta.asof+' · '+D.meta.month;
@@ -180,7 +190,7 @@ function wire(x){var key='cfnj_coach_done_'+x.slug+'_'+D.meta.today,st={};try{st
   actWire(x);
   nsWire(x);
   psWire(x);
-  document.querySelectorAll('.minis a').forEach(function(a){a.onclick=function(e){e.preventDefault();var t=document.getElementById(a.getAttribute('href').slice(1));if(t)window.scrollTo({top:t.getBoundingClientRect().top+window.scrollY-110,behavior:'smooth'})}})}
+  document.querySelectorAll('.minis a').forEach(function(a){a.onclick=function(e){e.preventDefault();jumpTo(a.getAttribute('href').slice(1))}})}
 /* ── owner views ── */
 /* ── team goal panel: all roster designers vs personal goal and on-pace marker ── */
 var GP_SORT='pct';
@@ -648,6 +658,7 @@ function lwBanner(P,compact){if(!lwOn(P))return'';var p=P.lw,A=(p.assets&&p.asse
 function cwOn(P){var c=P&&P.cw,t=cpNow();return !!(c&&c.on===true&&c.start&&c.end&&t&&t>=c.start&&t<=c.end)}
 function prFill(s,c,o){o=o||{};return cpFill(s,{nm:(c&&c.name)||'there',me:FF_ME||'[your name]',space:c?ffRoom(c):'[space]',save:o.save||'[savings amount]'})}
 function prLinks(c,txt,subj,tail,after){var h=[];if(!c)return'';var rest=(after?'\n\n'+after:'')+(tail?prFill(tail,c):'');
+  if(c.ph)h.push('<a class="btn ghost prl prc" href="'+ctTel(c.ph)+'">📞 Call</a>');
   if(c.ph)h.push('<a class="btn ghost prl prs" href="sms:'+(String(c.ph).length===10?'+1'+c.ph:c.ph)+'?&body='+encodeURIComponent(txt)+'">💬 Text</a>');
   if(c.em&&!c.eo)h.push('<a class="btn ghost prl pre" data-rest="'+esc(rest)+'" href="mailto:'+encodeURI(c.em)+'?subject='+encodeURIComponent(subj||'')+'&body='+encodeURIComponent(txt+rest)+'">✉️ Email</a>');
   else if(c.em&&c.eo)h.push('<span class="ctn">opted out of marketing email: no email</span>');
@@ -763,7 +774,7 @@ function inBlock(c){if(!c||!c.inact)return '';var H=c.hist||[];
 function pcCard(c,P){return '<div class="nsd pc" data-pref="'+esc(c.ref)+'"><div class="top"><span><b>'+nsWho(c)+'</b> <span class="ref">'+esc(c.ref)+'</span></span><span class="amt">'+m0(c.usd)+'</span></div>'+ctLine(c)+
     '<div class="small nsm">'+esc(c.rooms_d||c.rooms.join(', '))+(c.lost?' · quoted, lost '+esc(c.sold):' · sold '+esc(c.sold))+(c.n>1?' · '+c.n+' projects':'')+' '+c.tags.map(function(t){return '<span class="chip '+(t.indexOf('Lowe')===0?'':'g')+'">'+esc(t)+'</span>'}).join('')+'</div>'+gphHint(c)+inBlock(c)+
     '<div class="why small"><b>Why this person:</b> '+esc(c.why)+(c.fit?' <span class="chip">'+esc(c.fit)+'</span>':'')+'</div>'+
-    (c.text?tvBox(c.tv||[c.text],c,c.after,null,null,false):'')+
+    (c.text?tvBox(c.tv||[c.text],c,c.after,'Checking in from Closet Factory','\n\n{me}\nCloset Factory',true):'')+
     (c.lowes&&P.lowes&&P.lowes.on!==false&&P.lowes.terms_note?'<div class="fine nslw">For you only, not in the text: '+esc(P.lowes.terms_note)+'</div>':'')+
     ffStep(c,c.lost?'lost':(c.inact?'inact':'pc'),P)+cpStep(c,c.lost?'lost':(c.inact?'inact':'pc'),P)+lwPc(c,P)+cwStep(c,c.lost?'lost':(c.inact?'inact':'pc'),P)+'<details class="nscall"><summary class="small"><b>📞 Call version</b></summary><div class="nss"><span>'+esc(c.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></details>'+cbBtns('pc',c.ref)+fuBox('pc',c.ref)+'<button type="button" class="cbdnc" data-ref="'+esc(c.ref)+'">🚫 Don\'t contact</button></div>'}
 function nsMonth(a){var m=['January','February','March','April','May','June','July','August','September','October','November','December'][(+String(a||'').slice(5,7)||new Date().getMonth()+1)-1];return m||'this month'}
@@ -792,6 +803,7 @@ function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N
      ((N.inact||[]).length?'<p class="small cbhelp">Same buttons as your past clients: tap what you did (💬 Texted · 📞 Called · 🏠 Visited · ✉️ Emailed) and it is logged in your activity; 🚫 Don\'t contact takes them off every list.</p>':'')+
      '<div id="inl"></div><p class="small hidden" id="inend"></p></div>';
    out+=sec('inact','👥 Clients from designers no longer here',ih)}
+  else out+=sec('inact','👥 Clients from designers no longer here','<div class="card"><p class="small" style="margin:0">No clients from designers no longer here are on your page right now. New ones assigned to you will show here.</p></div>');
   /* Lost but winnable (Andrew approved, Nov 11, 2026): your own lost quotes (1-18 months), not bought since, no open quote */
   if(N.lost){var lh='<div class="card"><p class="small" style="margin:0 0 8px">'+((N.lost||[]).length+(N.lost_res||[]).length?'<b>Quotes you lost 1-18 months ago</b> for no decision, budget or timing. They have not bought since and have no open quote, so a friendly, no-pressure check-in can win them back. Each card has a soft text (no discounts, no specials) and a call version.'+(ffOn(P)?' Through Dec 31 each card also has a 🎉 Friends & Family next step.':'')+' Showing <span id="lon">'+Math.min(N.lost_show||10,(N.lost||[]).length+(N.lost_res||[]).length)+'</span> at a time; the next one moves up when you log a contact.':'No lost quotes to revisit right now.')+'</p>'+
      ((N.lost||[]).length?'<p class="small cbhelp">Same buttons as your past clients: tap what you did and it is logged; they leave this list for '+(N.pc_quiet||60)+' days. A dated follow-up note brings them back on that day. 🚫 Don\'t contact takes the household off every list.</p>':'')+
