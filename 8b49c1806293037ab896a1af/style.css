@@ -336,3 +336,5 @@ body.psopen{overflow:hidden}
 .tv .tvnext{margin:4px 0 2px;font-size:12px;padding:4px 10px}
 .tv .tvafter{margin-top:8px}
 .tv .nstx{border-left:3px solid #2f7d4f}
+.prls .ctn{color:var(--mut);font-size:12.5px}
+.tv .prls{margin-top:6px}
