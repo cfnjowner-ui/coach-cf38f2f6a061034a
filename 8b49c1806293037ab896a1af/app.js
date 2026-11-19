@@ -90,8 +90,11 @@ function designer(x){var s=x.snap,g=x.goal,n=x.notes,T=D.team,tm=T.mtd,M=D.meta,
   if(D.kind==='owner')h+='<a class="back" href="#people">← All designers</a>';
   if(x.test)h+='<div class="card" style="border-left:5px solid #c47f00;background:#fff8e6"><b>🧪 TEST PAGE</b><p class="small" style="margin:6px 0 0">'+esc(x.test.label||x.name)+': a copy of '+esc(x.test.mirror||'a designer')+'\'s real page for testing. Activity entries saved here are sent to the Activity log Sheet with Designer = "'+esc(x.act_who||x.name)+'" so they are easy to filter and delete. Not counted in team totals.</p></div>';
   h+='<div class="card hero"><div class="m">'+esc(M.month)+' · day '+M.day+' of '+M.dim+' · '+M.days_left+' days left</div><h2>'+esc(x.name)+'</h2><div class="m">Personal coaching page · coach, not judge: every number compares you fairly to the team for the leads you run.</div>'+psBtn(x)+'</div>';
-  h+='<div class="minis"><a href="#promos">Promotions</a><a href="#wins">Wins</a><a href="#close">Close this month</a><a href="#pastc">Past clients</a><a href="#inact">Former designers&#39; clients</a><a href="#activity">My activity</a><a href="#snap">Snapshot</a><a href="#goal">Goal</a><a href="#notes">Next steps</a><a href="#focus">Focus</a><a href="#week">This week</a><a href="#learn">Library</a></div>';
+  h+='<div class="ctabs" role="tablist" aria-label="Client groups">'+clientTabs(x)+'</div>';
+  h+='<div class="minis"><a href="#promos">Promotions</a><a href="#wins">Wins</a><a href="#close">Close this month</a><a href="#activity">My activity</a><a href="#snap">Snapshot</a><a href="#goal">Goal</a><a href="#notes">Next steps</a><a href="#focus">Focus</a><a href="#week">This week</a><a href="#learn">Library</a></div>';
   h+=promoSec(x,x.ns&&x.ns.promo,false);
+  h+=lwTab(x);
+  h+=cwTab(x);
   h+=fuSection(x);
   /* wins first */
   h+=sec('wins','🌟 Wins & streaks','<div class="wins">'+x.wins.map(function(w){return '<div class="win"><div class="i">'+w.icon+'</div><div><b>'+esc(w.t)+'</b><span>'+esc(w.d)+'</span></div></div>'}).join('')+'</div>');
@@ -654,11 +657,9 @@ function lwPc(c,P){P=P||CP_P;if(!c||!c.lowes||!lwOn(P))return'';var p=P.lw,t=prF
   return '<details class="lwstep"><summary class="small"><b>'+esc(p.icon||'')+' Lowe’s promotion:</b> '+esc(c.lost?p.lab_lost:p.lab_pc)+'</summary>'+prTxt(t)+prLinks(c,t,p.em_subj,p.em_tail)+'<div class="fine">'+esc(p.tier_note)+'</div></details>'}
 function cwStep(c,kind,P){P=P||CP_P;if(!c||!c.rt||c.lowes||!cwOn(P))return'';if(kind==='deal'&&c.k==='signed')return'';var p=P.cw,t=prFill(kind==='deal'?p.t_deal:(c.lost?p.t_lost:(c.inact?p.t_inact:p.t_past)),c);
   return '<details class="cwstep"><summary class="small"><b>'+esc(p.icon||'')+' Next step:</b> '+esc(p.lab)+'</summary>'+prTxt(t)+prLinks(c,t,p.em_subj,p.em_tail)+'<div class="fine">'+esc(p.rule)+'</div></details>'}
-function lwPool(x){var N=(x&&x.ns)||{},st={pc:{},dnc:{}};try{st=cbState(x)}catch(e){}var out=[],seen={};
-  ['past','past_res','inact','inact_res','lost','lost_res'].forEach(function(k){(N[k]||[]).forEach(function(c){if(c&&c.lowes&&!seen[c.ref]&&!st.pc[c.ref]&&!st.dnc[c.ref]){seen[c.ref]=1;out.push(c)}})});return out}
-function lwRows(x,P){var p=P.lw,L=lwPool(x);if(!L.length)return '<p class="small">No Lowe’s past or lost clients to reach right now (contacted in the last 60 days, Don’t contact, or none on file).</p>';
+function lwRows(x,P){var p=P.lw,L=lwPool(x);if(!L.length)return '<p class="small lwempty">No Lowe’s past clients, lost quotes or former designers’ Lowe’s clients on your page right now (none on file, contacted in the last 60 days, or Don’t contact). New Lowe’s clients assigned to you will show here; open Lowe’s quotes keep their 🏠 step in Close this month.</p>';
   return '<p class="small"><b>'+L.length+' Lowe’s client'+(L.length===1?'':'s')+' to reach</b> (yours, plus Lowe’s clients of former designers now on your page). '+esc(p.pool_note)+'</p><div class="lwlist">'+
-   L.map(function(c,i){var t=prFill(lwKindT(p,c),c),lab=c.lost?'Lost quote, '+c.sold:(c.inact?'From a former designer':'Your past client, sold '+c.sold);
+   L.map(function(c,i){var t=prFill(lwKindT(p,c),c),lab=c.lost?(c.inact?'Lost quote, designer no longer here, '+c.sold:'Lost quote, '+c.sold):(c.inact?'From a former designer':'Your past client, sold '+c.sold);
     return '<div class="lwrow'+(i>=10?' lwmore':'')+'"><div><b>'+nsWho(c)+'</b> <span class="ref">'+esc(c.ref)+'</span> <span class="chip g">'+esc(lab)+'</span></div>'+ctLine(c,true)+
      '<details><summary class="small">Message</summary>'+prTxt(t)+'</details>'+prLinks(c,t,p.em_subj,p.em_tail)+cbBtns('pc',c.ref)+'</div>'}).join('')+'</div>'+
    (L.length>10?'<button class="btn ghost lwall" type="button" style="width:100%">Show all '+L.length+'</button>':'')}
@@ -668,11 +669,46 @@ function cwBox(P,compact){if(!cwOn(P))return'';var p=P.cw;
    (compact?'':'<div class="small" style="margin-top:6px">Costco cards on this page carry a '+esc(p.icon)+' step with a ready text and email.</div><details class="cpd"><summary class="small"><b>Messages</b></summary>'+
    '<div class="small nslab"><b>Open quote</b></div>'+prTxt(prFill(p.t_deal,null))+'<div class="small nslab"><b>Past client</b></div>'+prTxt(prFill(p.t_past,null))+'<div class="small nslab"><b>Lost quote</b></div>'+prTxt(prFill(p.t_lost,null))+'</details>')+
    '</div></div></div>'}
+/* Client-group TABS (Nov 19, 2026; Andrew 11:23 + 11:25 AM ET): a top tab row Past clients | Previous designers' clients | Lowe's clients | Costco clients.
+   Lowe's / Costco tabs: own section each, the offer + how-to + one-tap script at the top, then the clients grouped best opportunity first (open quotes
+   by $, lost quotes most recent first, past clients, previous designers' clients), each with Text / Email / Copy and the usual log buttons. Same
+   60-day quiet, Don't-contact and follow-up-note filters as the other lists. Date-gated (lwOn / cwOn): after Dec 2, 11:59 PM ET the two tabs
+   disappear and their clients return to the regular lists. Offer wording only from the encrypted bundle (P.lw / P.cw). */
+function prList(x,kind){var N=(x&&x.ns)||{},P=N.promo,st={pc:{},deal:{},dnc:{}},g={};try{st=cbState(x)}catch(e){}try{g=fuState(x)}catch(e){}
+  var ok=function(c){return c&&prTabOf(c,P)===kind&&!st.dnc[c.ref]},G={open:[],lost:[],past:[],prev:[]},seen={};
+  (N.deals||[]).forEach(function(d){if(ok(d)&&d.k!=='signed'&&!seen[d.ref]){seen[d.ref]=1;G.open.push(d)}});
+  ['lost','lost_res','inact','inact_res','past','past_res'].forEach(function(k){(N[k]||[]).forEach(function(c){if(!ok(c)||seen[c.ref]||st.pc[c.ref]||(g[c.ref]&&g[c.ref].g))return;seen[c.ref]=1;(c.lost?G.lost:(c.inact?G.prev:G.past)).push(c)})});
+  G.open.sort(function(a,b){return (b.usd||0)-(a.usd||0)});G.lost.sort(function(a,b){return (a.months||0)-(b.months||0)});G.n=G.open.length+G.lost.length+G.past.length+G.prev.length;return G}
+function prMsg(kind,P,c,grp){var p=P[kind];if(grp==='open'){if(kind==='lw'){var T=p.tiers||[],u=+c.usd,t=null;for(var i=0;i<T.length;i++)if(u>=T[i].lo)t=T[i];return t?prFill(p.t_deal_s,c,{save:m0(t.save)}):prFill(p.t_deal_g,c)}return prFill(p.t_deal,c)}
+  return prFill(grp==='lost'?p.t_lost:(grp==='prev'?p.t_inact:p.t_past),c)}
+function prRow(kind,P,c,grp,i){var p=P[kind],t=prMsg(kind,P,c,grp),lab=grp==='open'?'Open quote · '+esc(c.stage||''):grp==='lost'?(c.inact?'Lost quote, designer no longer here, ':'Lost quote, ')+esc(c.sold||''):grp==='prev'?'From a previous designer':'Your past client, sold '+esc(c.sold||'');
+  return '<div class="prrow lwrow'+(i>=10?' lwmore':'')+'" data-g="'+grp+'"><div class="top"><span><b>'+nsWho(c)+'</b> <span class="ref">'+esc(c.ref)+'</span> <span class="chip g">'+lab+'</span></span><span class="amt">'+m0(c.usd)+'</span></div>'+ctLine(c,true)+
+   (grp==='open'&&kind==='lw'?'<div class="small cpq">'+esc(lwQuote(P,+c.usd))+'</div>':'')+'<details><summary class="small">Message</summary>'+prTxt(t)+'</details>'+prLinks(c,t,p.em_subj,p.em_tail)+cbBtns(grp==='open'?'deal':'pc',c.ref)+'</div>'}
+function prGroups(x,kind){var P=x.ns.promo,G=prList(x,kind),nm={open:'Open quotes (biggest first)',lost:'Lost quotes (most recent first)',past:'Your past clients',prev:'Previous designers’ clients'},h='';
+  if(!G.n)return '<p class="small lwempty">No '+(kind==='lw'?'Lowe’s':'Costco')+' clients on your page right now (none on file, contacted in the last 60 days, a follow-up note is holding them, or Don’t contact). New '+(kind==='lw'?'Lowe’s':'Costco')+' clients assigned to you will show here.</p>';
+  var first=true;['open','lost','past','prev'].forEach(function(k){var L=G[k];if(!L.length)return;
+    h+='<details class="card prg"'+(first?' open':'')+'><summary><b>'+nm[k]+'</b> <span class="chip">'+L.length+'</span></summary><div class="lwlist">'+L.map(function(c,i){return prRow(kind,P,c,k,i)}).join('')+'</div>'+(L.length>10?'<button class="btn ghost lwall" type="button" style="width:100%">Show all '+L.length+'</button>':'')+'</details>';first=false});
+  return '<p class="small"><b>'+G.n+' '+(kind==='lw'?'Lowe’s':'Costco')+' client'+(G.n===1?'':'s')+' to reach.</b> One-to-one from your own phone or email; log each with Texted / Called / Emailed.</p>'+h}
+function lwPool(x){var G=prList(x,'lw');return G.lost.concat(G.past,G.prev)}
+function tabBadge(n){return ' <b class="mbadge">'+n+'</b>'}
+function clientTabs(x){var st={pc:{},dnc:{}};try{st=cbState(x)}catch(e){}var P=x.ns&&x.ns.promo,h='';
+  var np=x.ns?cbPastAll(x,st,'past').length:0,ni=x.ns?cbPastAll(x,st,'inact').length:0;
+  h+='<a href="#pastc" class="mtab">📞 Past clients'+tabBadge(np)+'</a><a href="#inact" class="mtab">👥 Previous designers&#39; clients'+tabBadge(ni)+'</a>';
+  if(lwOn(P))h+='<a href="#lwtab" class="mtab mlw">🏠 Lowe&#39;s clients'+tabBadge(prList(x,'lw').n)+'</a>';
+  if(cwOn(P))h+='<a href="#cwtab" class="mtab mcw">🛒 Costco clients'+tabBadge(prList(x,'cw').n)+'</a>';
+  return h}
+function lwTab(x){var P=x&&x.ns&&x.ns.promo;if(!lwOn(P))return'';var p=P.lw;
+  var tiers='<div class="cptiers">'+(p.tiers||[]).map(function(t){return '<div class="cpt"><b>Save '+m0(t.save)+'</b><span>'+m0(t.lo)+(t.hi?'–$'+Number(t.hi).toLocaleString('en-US',{minimumFractionDigits:(t.hi%1?2:0),maximumFractionDigits:2}):'+')+'</span></div>'}).join('')+'</div>';
+  var how='<div class="lwhow"><b>How to offer it</b><ol class="tight small">'+(p.howto||[]).map(function(h){return '<li>'+esc(h)+'</li>'}).join('')+'</ol><div class="small nslab"><b>One-line script (say it or paste it)</b></div>'+prTxt(p.wording)+'</div>';
+  return sec('lwtab','🏠 Lowe’s clients · '+esc(p.name)+' <span class="chip lwend">'+esc(p.when_chip)+'</span>',how+tiers+'<div class="fine">'+esc(p.tier_note)+'</div>'+prGroups(x,'lw'))}
+function cwTab(x){var P=x&&x.ns&&x.ns.promo;if(!cwOn(P))return'';var p=P.cw;
+  var how='<div class="lwhow cwhow"><b>'+esc(p.headline)+'</b><ol class="tight small">'+(p.howto||[]).map(function(h){return '<li>'+esc(h)+'</li>'}).join('')+'</ol><div class="small nslab"><b>One-line script (say it or paste it)</b></div>'+prTxt(p.wording||'')+'<div class="fine">'+esc(p.rule)+'</div></div>';
+  return sec('cwtab','🛒 Costco clients · '+esc(p.name)+' <span class="chip cwend">'+esc(p.when_chip)+'</span>',how+prGroups(x,'cw'))}
 function promoSec(x,P,compact){P=P||{};CP_P=P;FF_P=P;if(x)FF_ME=String(x.name||'').split(' ')[0];if(/^test$/i.test(FF_ME))FF_ME='';var rows=[],cnt=function(f){var N=(x&&x.ns)||{},n=0;['deals','past','past_res','inact','inact_res','lost','lost_res'].forEach(function(k){(N[k]||[]).forEach(function(c){if(f(c)&&!(k==='deals'&&c.k==='signed'))n++})});return n};
   var row=function(id,ic,name,who,chip,head,body,n){return '<details class="prm" id="'+id+'"><summary><span class="prmi">'+esc(ic)+'</span><span class="prmt"><b>'+esc(name)+'</b> <span class="chip">'+esc(chip)+'</span><br><span class="small"><b>For:</b> '+esc(who)+(x?' · '+n+' on your page':'')+'</span><br><span class="small">'+esc(head)+'</span></span></summary><div class="prmb">'+body+'</div></details>'};
   if(cpOn(P))rows.push(row('pr_cp',P.cp.icon,P.cp.name,'core clients only (not Costco or Lowe’s)',P.cp.when_chip,P.cp.headline,cpBanner(P,compact),cnt(function(c){return !c.rt})));
-  if(lwOn(P))rows.push(row('pr_lw',P.lw.icon,P.lw.name,'Lowe’s clients (past, current and new)',P.lw.when_chip,P.lw.headline,lwBanner(P,compact)+(x&&!compact?'<div class="card"><b>📣 Lowe’s outreach list</b>'+lwRows(x,P)+'</div>':''),cnt(function(c){return c.lowes})));
-  if(cwOn(P))rows.push(row('pr_cw',P.cw.icon,P.cw.name,'Costco clients',P.cw.when_chip,P.cw.headline,cwBox(P,compact),cnt(function(c){return c.rt&&!c.lowes})));
+  if(lwOn(P))rows.push(row('pr_lw',P.lw.icon,P.lw.name,'Lowe’s clients (past, current and new)',P.lw.when_chip,P.lw.headline,lwBanner(P,compact)+(x&&!compact?'<a class="btn lwgo" href="#lwtab">Open the 🏠 Lowe’s clients tab: ready texts and emails →</a>':''),cnt(function(c){return c.lowes})));
+  if(cwOn(P))rows.push(row('pr_cw',P.cw.icon,P.cw.name,'Costco clients',P.cw.when_chip,P.cw.headline,cwBox(P,compact)+(x&&!compact?'<a class="btn lwgo" href="#cwtab">Open the 🛒 Costco clients tab: ready texts and emails →</a>':''),cnt(function(c){return c.rt&&!c.lowes})));
   if(!rows.length)return'';
   return sec('promos','🎯 Promotions','<p class="small" style="margin:0 0 6px">Running now. Each client card shows only the promotion that fits that client’s lead source. Tap a promotion for its terms, scripts and files.</p>'+rows.join(''))}
 document.addEventListener('click',function(ev){var t=ev.target;if(!t.closest)return;var a=t.closest('.lwall');if(a){ev.preventDefault();var L=a.previousElementSibling;if(L)L.classList.add('lwopen');a.remove();return}
@@ -803,7 +839,10 @@ function cbState(x){var N=x.ns,td=ACT.ymd(new Date()),q=cbAgo(N.pc_quiet||60),st
   var L=cbLoad(x);['pc','deal'].forEach(function(k){Object.keys(L[k]).forEach(function(r){var o=L[k][r];add(k,r,o.a,o.d,o.t)})});var ch=0;Object.keys(L.dnc).forEach(function(r){if(rsd(r,(L.dnc[r]||{}).d)){delete L.dnc[r];ch=1}else st.dnc[r]=1});if(ch)cbSave(x,L);
   return st}
 /* past-client list: ranked (top 10 + reserve) minus everyone contacted in the quiet window, first 10 */
-function cbPastAll(x,st,k){var N=x.ns,g=fuState(x);k=k||'past';return (N[k]||[]).concat(N[k+'_res']||[]).filter(function(c){return !st.pc[c.ref]&&!st.dnc[c.ref]&&!(g[c.ref]&&g[c.ref].g)})}
+function cbPastAll(x,st,k){var N=x.ns,g=fuState(x);k=k||'past';return (N[k]||[]).concat(N[k+'_res']||[]).filter(function(c){return !st.pc[c.ref]&&!st.dnc[c.ref]&&!(g[c.ref]&&g[c.ref].g)&&!prTabOf(c,N.promo)})}
+/* Nov 19, 2026 (Andrew 11:25 AM ET): while the Lowe's / Costco promotions run, their clients are listed ONLY in the Lowe's / Costco tab, not also in
+   Past clients / previous designers / lost lists; after the end date (lwOn/cwOn false) they fall back into those lists automatically. */
+function prTabOf(c,P){if(!c)return'';if(c.lowes&&lwOn(P))return'lw';if(c.rt&&!c.lowes&&cwOn(P))return'cw';return''}
 /* Fill-up (Nov 11, 2026): first screen shows ns.past_show / ns.inact_show cards (quotes + past + former-designer clients >= 25 where the lists
    allow, never fewer than 10); "Show more" adds 10 at a time from the reserve already in the bundle (CB_MORE, this visit only). */
 var CB_MORE={};
