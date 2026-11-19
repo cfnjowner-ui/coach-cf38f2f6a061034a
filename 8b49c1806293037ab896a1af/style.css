@@ -331,3 +331,8 @@ body.psopen{overflow:hidden}
 .ctabs a .mbadge{display:inline-block;min-width:18px;margin-left:4px;padding:0 5px;border-radius:999px;background:var(--ink,#1d2733);color:#fff;font-size:11px;line-height:18px;text-align:center}
 .ctabs a.mlw{border-color:#004990;color:#004990}.ctabs a.mlw .mbadge{background:#004990}.ctabs a.mcw{border-color:#e31837;color:#e31837}.ctabs a.mcw .mbadge{background:#e31837}
 @media(max-width:759px){.ctabs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Spam-safe texts (Nov 19, 2026 1:05 PM ET): pacing tip, rotating first text, after-reply box */
+.pace{background:#fff7e6;border:1px solid #f0d49a;border-radius:10px;padding:8px 10px;margin:6px 0 10px;line-height:1.4}
+.tv .tvnext{margin:4px 0 2px;font-size:12px;padding:4px 10px}
+.tv .tvafter{margin-top:8px}
+.tv .nstx{border-left:3px solid #2f7d4f}
