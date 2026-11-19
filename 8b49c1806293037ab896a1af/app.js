@@ -608,8 +608,42 @@ document.addEventListener('click',function(ev){var b=ev.target.closest&&ev.targe
 document.addEventListener('toggle',function(ev){var d=ev.target;if(!d||!d.classList||!d.classList.contains('cppost')||!d.open)return;var P=cpPD();if(!cpOn(P))return;
   d.querySelectorAll('.cpsimg:not(.done)').forEach(function(el){el.classList.add('done');var it=(P.cp.assets.items||[]).filter(function(i){return i.id===el.getAttribute('data-id')})[0];if(!it)return;
     cpGet(it,P).then(function(u){el.innerHTML='<img alt="Post image" src="'+u+'"><a class="btn ghost" href="'+u+'" download="'+esc(it.fn)+'">⬇ Download image</a>'}).catch(function(){el.classList.remove('done');el.innerHTML='<span class="fine">Could not open the image. Close and reopen this post to retry.</span>'})})},true);
+/* Lowe's partner promotion (Nov 19, 2026; Andrew). Same pattern as the current promotion: all wording, dates, tiers and the file key live only in
+   the encrypted bundle (P.lw), present only while its window is open at build time; lwOn() also checks the browser's ET clock. Shown only on
+   Lowe's open quotes (p.lowes, not signed) and only on pages that have one (owner page: compact). Never on core or Costco cards. */
+var LW_HAS=false;
+function lwOn(P){var c=P&&P.lw,t=cpNow();return !!(c&&c.on===true&&c.start&&c.end&&t&&t>=c.start&&t<=c.end)}
+function lwQuote(P,usd){var c=P.lw,tp=c.tpl||{},T=c.tiers||[],t=null,n=null,s;if(!(usd>0))return tp.q_none||'';
+  for(var i=0;i<T.length;i++){if(usd>=T[i].lo)t=T[i];else{n=T[i];break}}
+  s=t?cpFill(tp.q_tier,{q:m0(usd),save:m0(t.save),pays:m0(usd-t.save)}):cpFill(tp.q_under,{q:m0(usd)});
+  if(n)s+=' '+cpFill(tp.q_next,{gap:m0(n.lo-usd),nsave:m0(n.save),nlo:m0(n.lo)});return s}
+function lwStep(c,P){P=P||CP_P;if(!c||!c.lowes||c.k==='signed'||!lwOn(P))return'';var p=P.lw,sc=(p.scripts||[])[1];
+  return '<details class="lwstep"><summary class="small"><b>'+esc(p.icon||'')+' Next step:</b> '+esc(p.lab)+'</summary><div class="small cpq">'+esc(lwQuote(P,+c.usd))+'</div>'+
+   (sc?'<div class="small nslab"><b>'+esc(sc[0])+'</b></div><div class="nss"><span>'+esc(sc[1])+'</span><button class="btn ghost cpcp" type="button">Copy</button></div>':'')+'<div class="fine">'+esc((p.rules||[])[1]?p.rules[1][1]:'')+'</div></details>'}
+function lwBanner(P,compact){if(!lwOn(P)||(!compact&&!LW_HAS))return'';var p=P.lw,A=(p.assets&&p.assets.items)||[];
+  var tiers='<div class="cptiers">'+(p.tiers||[]).map(function(t){return '<div class="cpt"><b>Save '+m0(t.save)+'</b><span>'+m0(t.lo)+(t.hi?'–$'+Number(t.hi).toLocaleString('en-US',{minimumFractionDigits:(t.hi%1?2:0),maximumFractionDigits:2}):'+')+'</span></div>'}).join('')+'</div>';
+  var sc=function(t,s){return '<div class="small nslab"><b>'+esc(t)+'</b></div><div class="nss"><span>'+esc(s)+'</span><button class="btn ghost cpcp" type="button">Copy</button></div>'};
+  return '<div class="card lwban" id="lwban"><div class="nsp"><span class="nsi">'+esc(p.icon||'')+'</span><div style="min-width:0;flex:1"><b>'+esc(p.name)+'</b> <span class="chip lwend">'+esc(p.when_chip)+'</span>'+
+   '<div class="cpoff">'+esc(p.headline)+'</div>'+tiers+'<div class="fine">'+esc(p.tier_note)+'</div>'+
+   (compact?'':sc('Consistent customer wording',p.wording)+'<div class="small" style="margin-top:6px">Your Lowe\'s open quotes below carry a '+esc(p.icon||'')+' step with the tier for that proposal.</div>')+
+   '<details class="cpd"'+(compact?'':' open')+'><summary class="small"><b>How it works</b></summary><ul class="tight small">'+(p.rules||[]).map(function(r){return '<li><b>'+esc(r[0])+'</b> '+esc(r[1])+'</li>'}).join('')+'</ul></details>'+
+   '<details class="cpd"><summary class="small"><b>Scripts</b> (texts, call, voicemail, final days)</summary>'+(p.scripts||[]).map(function(s){return sc(s[0],s[1])}).join('')+'</details>'+
+   '<details class="cpd"><summary class="small"><b>Common questions</b></summary><ul class="tight small">'+(p.faq||[]).map(function(f){return '<li><b>'+esc(f[0])+'</b> '+esc(f[1])+'</li>'}).join('')+'</ul></details>'+
+   '<details class="cpd"><summary class="small"><b>Official terms</b> (customer legal text)</summary>'+sc('Terms',p.legal)+'</details>'+
+   (A.length?'<div class="cpas small"><b>Files:</b> '+A.map(function(it){return '<button type="button" class="btn ghost lwa" data-id="'+esc(it.id)+'">'+esc(it.label)+'</button>'}).join(' ')+'<div class="cpimg"></div></div>':'')+
+   (p.video?'<div class="small" style="margin-top:6px"><a href="'+esc(p.video)+'" target="_blank" rel="noopener">▶ Training video for CSRs and designers</a></div>':'')+
+   '</div></div></div>'}
+function lwPD(){if(!D)return null;var x=(D.designers||[])[0];return (x&&x.ns&&x.ns.promo)||(D.owner&&D.owner.ns&&D.owner.ns.promo)||null}
+document.addEventListener('click',function(ev){var t=ev.target.closest&&ev.target.closest('.lwa');if(!t)return;ev.preventDefault();var P=lwPD();if(!lwOn(P))return;
+  var A=P.lw.assets,it=(A.items||[]).filter(function(i){return i.id===t.getAttribute('data-id')})[0];if(!it||t.disabled)return;t.disabled=true;var lb=t.textContent;t.textContent='Opening…';
+  var kb=new Uint8Array(A.k.match(/../g).map(function(h){return parseInt(h,16)}));
+  fetch('a/'+it.f,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('net');return r.arrayBuffer()}).then(function(buf){var b=new Uint8Array(buf);
+    return crypto.subtle.importKey('raw',kb,{name:'AES-GCM'},false,['decrypt']).then(function(k){return crypto.subtle.decrypt({name:'AES-GCM',iv:b.slice(0,12)},k,b.slice(12))})})
+  .then(function(pt){var u=URL.createObjectURL(new Blob([pt],{type:it.mime})),a=document.createElement('a');a.href=u;a.className='btn ghost lwa-ok';a.target='_blank';a.rel='noopener';a.download=it.fn;a.textContent='⬇ '+lb;t.replaceWith(a);
+    if(/^image\//.test(it.mime)){var box=a.parentNode.querySelector('.cpimg');if(box)box.innerHTML='<img alt="" src="'+u+'" style="width:100%;max-width:520px;margin-top:6px;border-radius:6px">'}})
+  .catch(function(){t.disabled=false;t.textContent=lb+' (could not open, try again)'})});
 /* Nov 11, 2026: promotions ended; a promo shows only while its on flag is true (nextsteps.PROMO). The referral thank-you always shows. */
-function nsPromo(P,compact){P=P||{};var s=P.showroom,l=P.lowes,on=function(o){return o&&o.on!==false};var fb=cpBanner(P,compact)+ffBanner(P,compact);if(!on(s)&&!on(l)&&!P.referral)return fb;return fb+'<div class="card nspromo">'+(on(s)?'<div class="nsp"><span class="nsi">🍂</span><div><b>'+esc(s.name)+'</b><div class="small">'+esc(s.text)+'</div></div></div>':'')+
+function nsPromo(P,compact){P=P||{};var s=P.showroom,l=P.lowes,on=function(o){return o&&o.on!==false};var fb=cpBanner(P,compact)+lwBanner(P,compact)+ffBanner(P,compact);if(!on(s)&&!on(l)&&!P.referral)return fb;return fb+'<div class="card nspromo">'+(on(s)?'<div class="nsp"><span class="nsi">🍂</span><div><b>'+esc(s.name)+'</b><div class="small">'+esc(s.text)+'</div></div></div>':'')+
   (on(l)?'<div class="nsp"><span class="nsi">🏠</span><div><b>'+esc(l.name)+'</b><div class="small">'+esc(l.text)+(compact?'':' Deals and past clients that qualify carry the "Lowe\'s 18-mo" tag.')+(l.terms_note?'<br><i>For you, not for clients: '+esc(l.terms_note)+'</i>':'')+'</div></div></div>':'')+
   (P.referral?'<div class="nsp"><span class="nsi">🎁</span><div><b>'+esc(P.referral.name)+'</b><div class="small">'+esc(P.referral.text)+'</div></div></div>':'')+'</div>'}
 function nsCard(p,T){var tod=p.due===T,dc='';
@@ -618,7 +652,7 @@ function nsCard(p,T){var tod=p.due===T,dc='';
   '<div class="nsa"><span class="chip '+dc+'">'+(tod?'Due today':'By '+esc(p.due_l))+'</span><b>'+esc(p.label)+'</b></div>'+
   '<div class="small nsm">'+esc(p.room)+' · '+esc(p.stage)+' · '+esc(p.src)+(p.chips||[]).map(function(c){return ' <span class="chip '+(c==='showroom upgrade'?'g':'')+'">'+esc(c)+'</span>'}).join('')+'</div>'+gphHint(p)+
   '<div class="why small"><b>Why:</b> '+p.why.map(esc).join(' · ')+'</div>'+
-  '<div class="nss"><span>'+esc(p.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>'+ffStep(p,'deal')+cpStep(p,'deal')+cbBtns('deal',p.ref)+fuBox('deal',p.ref)+'</div>'}
+  '<div class="nss"><span>'+esc(p.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div>'+ffStep(p,'deal')+cpStep(p,'deal')+lwStep(p)+cbBtns('deal',p.ref)+fuBox('deal',p.ref)+'</div>'}
 /* Garage placeholder (Andrew, Oct 26, 2026): ClosetWare's "Garage" project type is often a catch-all, so cards whose type is Garage carry
    this hint; their scripts are neutral unless the booking note clearly names one room (nextsteps.py room_for). */
 var GPH_NOTE='ClosetWare often shows Garage as a placeholder project type. Check your own records before mentioning a specific room.';
@@ -636,7 +670,7 @@ function pcCard(c,P){return '<div class="nsd pc" data-pref="'+esc(c.ref)+'"><div
     (c.lowes&&P.lowes&&P.lowes.on!==false&&P.lowes.terms_note?'<div class="fine nslw">For you only, not in the text: '+esc(P.lowes.terms_note)+'</div>':'')+
     ffStep(c,c.lost?'lost':(c.inact?'inact':'pc'),P)+cpStep(c,c.lost?'lost':(c.inact?'inact':'pc'),P)+'<details class="nscall"><summary class="small"><b>📞 Call version</b></summary><div class="nss"><span>'+esc(c.script)+'</span><button class="btn ghost nscp" type="button">Copy</button></div></details>'+cbBtns('pc',c.ref)+fuBox('pc',c.ref)+'<button type="button" class="cbdnc" data-ref="'+esc(c.ref)+'">🚫 Don\'t contact</button></div>'}
 function nsMonth(a){var m=['January','February','March','April','May','June','July','August','September','October','November','December'][(+String(a||'').slice(5,7)||new Date().getMonth()+1)-1];return m||'this month'}
-function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N.deals||[];FF_P=P;CP_P=P;FF_ME=String(x.name||'').split(' ')[0];if(/^test$/i.test(FF_ME))FF_ME='';
+function nsSection(x){var N=x.ns;if(!N)return'';var T=N.asof,P=N.promo,h='',ds=N.deals||[];FF_P=P;CP_P=P;LW_HAS=ds.some(function(p){return p.lowes&&p.k!=='signed'});FF_ME=String(x.name||'').split(' ')[0];if(/^test$/i.test(FF_ME))FF_ME='';
   h+=nsPromo(P);
   h+='<div class="grid">'+tile('In play',m0(N.usd),N.n+' open quote'+(N.n===1?'':'s')+' · every one is winnable','neu')+tile('Due today',n0(N.today_n),'next steps to do today ('+N.per_day+' a day, biggest $ first)',N.today_n?'neu':'neu')+
    tile('Quiet 14+ days',n0(N.nodate_n),m0(N.nodate_usd)+' with no dated note in 14+ days',N.nodate_n?'neg':'pos')+tile('Showroom invites',n0(ds.filter(function(p){return p.showroom&&p.usd>=5000}).length),'quotes over $5,000 with a showroom visit in the next step','neu')+'</div>';
